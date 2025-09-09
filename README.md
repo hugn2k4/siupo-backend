@@ -156,8 +156,3 @@ Mỗi service nên có README riêng mô tả chức năng, cách chạy, cấu 
 **config-server** là một service dùng Spring Cloud Config Server để quản lý cấu hình tập trung cho toàn bộ hệ thống microservice. Thay vì mỗi service tự lưu file cấu hình riêng, tất cả sẽ lấy cấu hình (database, endpoint, biến môi trường, v.v.) từ config-server thông qua HTTP. Điều này giúp dễ dàng thay đổi, cập nhật cấu hình cho nhiều service cùng lúc mà không cần sửa từng service riêng lẻ.
 
 Ví dụ: Khi đổi thông tin kết nối database, chỉ cần cập nhật ở config-server, các service sẽ tự động nhận cấu hình mới.
-```
-
-```
-
-```
