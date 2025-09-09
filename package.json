@@ -1,0 +1,26 @@
+{
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/hugn2k4/siupo-backend/issues"
+  },
+  "description": "> Dự án Spring Boot Microservice REST API cho hệ thống quản lý nhà hàng Siupo.",
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7"
+  },
+  "homepage": "https://github.com/hugn2k4/siupo-backend#readme",
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
+  "name": "siupo-restaurant",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hugn2k4/siupo-backend.git"
+  },
+  "scripts": {
+    "prepare": "husky install",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.0"
+}

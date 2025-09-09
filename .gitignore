@@ -1,33 +1,40 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# Maven
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Eclipse
+*.classpath
+*.project
+*.settings/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+# IntelliJ
+.idea/
 *.iml
-*.ipr
+out/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# NetBeans
+nbproject/private/
 build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+dist/
 
-### VS Code ###
+# VS Code
 .vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+
+# Node.js (nếu dùng cho commitlint/husky)
+/node_modules/
+/.husky/
+/package-lock.json
+
+# Others
+*.swp
