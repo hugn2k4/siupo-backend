@@ -1,6 +1,6 @@
-# 🍽️ Supbo Restaurant - Backend
+# 🍽️ Siupo Restaurant - Backend
 
-> Dự án Spring Boot REST API cho hệ thống quản lý nhà hàng Supbo.
+> Dự án Spring Boot REST API cho hệ thống quản lý nhà hàng Siupo.
 
 ---
 
@@ -30,7 +30,7 @@
 ```bash
 # Clone về máy
 git clone https://github.com/hugn2k4/siupo-backend.git
-cd supbo-restaurant/back-end/supbo-restaurant
+cd siupo-restaurant/back-end/siupo-restaurant
 ```
 
 ### 2. Cấu hình database & mail
@@ -51,7 +51,7 @@ Server mặc định chạy tại: `http://localhost:8080`
 ```
 src/
 ├── main/
-│   ├── java/com/supbo/restaurant/
+│   ├── java/com/siupo/restaurant/
 │   │   ├── controller/      # REST API controllers
 │   │   ├── service/         # Business logic
 │   │   ├── repository/      # JPA repositories

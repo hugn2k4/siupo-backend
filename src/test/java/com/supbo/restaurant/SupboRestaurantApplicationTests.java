@@ -1,10 +1,10 @@
-package com.supbo.restaurant;
+package com.siupo.restaurant;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class SupboRestaurantApplicationTests {
+class SiupoRestaurantApplicationTests {
 
 	@Test
 	void contextLoads() {
