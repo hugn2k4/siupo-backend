@@ -8,11 +8,11 @@
         <version>3.5.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.supbo</groupId>
+    <groupId>com.siupo</groupId>
     <artifactId>restaurant</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>supbo-restaurant</name>
-    <description>supbo-restaurant</description>
+    <name>siupo-restaurant</name>
+    <description>siupo-restaurant</description>
     <url/>
     <licenses>
         <license/>
