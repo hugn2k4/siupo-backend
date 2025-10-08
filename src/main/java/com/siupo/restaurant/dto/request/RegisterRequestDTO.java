@@ -7,10 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 @Data
-public class UserRegisterRequestDTO {
-    @NotBlank(message = "Username không được để trống")
-    private String username;
-
+public class RegisterRequestDTO {
     @Email(message = "Email không hợp lệ")
     @NotBlank(message = "Email không được để trống")
     private String email;
