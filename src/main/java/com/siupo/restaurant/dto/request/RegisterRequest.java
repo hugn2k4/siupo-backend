@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 @Data
-public class RegisterRequestDTO {
+public class RegisterRequest {
     @Email(message = "Email không hợp lệ")
     @NotBlank(message = "Email không được để trống")
     private String email;

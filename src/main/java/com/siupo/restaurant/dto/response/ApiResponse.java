@@ -13,6 +13,10 @@ import java.time.Instant;
 @Builder
 public class ApiResponse<T> {
     private boolean success;
+
+    @Builder.Default
+    private String code = "";
+
     @Builder.Default
     private String message = "";
 

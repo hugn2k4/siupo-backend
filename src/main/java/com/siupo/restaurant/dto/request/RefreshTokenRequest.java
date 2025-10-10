@@ -4,13 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotBlank;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LogoutRequestDTO {
-    
-    @NotBlank(message = "Refresh token không được để trống")
+public class RefreshTokenRequest {
     private String refreshToken;
 }

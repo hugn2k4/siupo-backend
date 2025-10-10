@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class LoginRequestDTO {
+public class LoginRequest {
 
     @Email(message = "Email không hợp lệ")
     @NotBlank(message = "Email không được để trống")
