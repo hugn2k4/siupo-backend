@@ -1,10 +1,10 @@
 package com.siupo.restaurant.service.authentication;
 
-import com.siupo.restaurant.dto.request.LoginRequestDTO;
-import com.siupo.restaurant.dto.request.RegisterRequestDTO;
-import com.siupo.restaurant.dto.request.RefreshTokenRequestDTO;
-import com.siupo.restaurant.dto.request.LogoutRequestDTO;
-import com.siupo.restaurant.dto.response.AuthResponseDTO;
+import com.siupo.restaurant.dto.request.LoginRequest;
+import com.siupo.restaurant.dto.request.RegisterRequest;
+import com.siupo.restaurant.dto.request.RefreshTokenRequest;
+import com.siupo.restaurant.dto.request.LogoutRequest;
+import com.siupo.restaurant.dto.response.AuthResponse;
 import com.siupo.restaurant.exception.BadRequestException;
 import com.siupo.restaurant.exception.NotFoundException;
 import com.siupo.restaurant.exception.UnauthorizedException;
@@ -47,7 +47,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Getter
     @RequiredArgsConstructor
     private static class PendingUser {
-        private final RegisterRequestDTO registerRequest;
+        private final RegisterRequest registerRequest;
         private final String otpHash;
         private final Instant expiryTime;
         private int attempts = 0;
@@ -71,7 +71,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     // =============== ĐĂNG KÝ ===============
     @Override
-    public void register(RegisterRequestDTO registerRequest) {
+    public void register(RegisterRequest registerRequest) {
         if (userRepository.findByEmail(registerRequest.getEmail()).isPresent())
             throw new BadRequestException("Email đã tồn tại!");
 
@@ -114,7 +114,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new BadRequestException("OTP không đúng!");
         }
 
-        RegisterRequestDTO req = pendingUser.getRegisterRequest();
+        RegisterRequest req = pendingUser.getRegisterRequest();
         User newUser = User.builder()
                 .fullName(req.getFullName())
                 .email(req.getEmail())
@@ -156,7 +156,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // =============== ĐĂNG NHẬP ===============
     @Override
     @Transactional
-    public AuthResponseDTO login(LoginRequestDTO loginRequest) {
+    public AuthResponse login(LoginRequest loginRequest) {
         // 1. Lấy user theo email
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new NotFoundException("Tài khoản không tồn tại!"));
@@ -190,7 +190,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         refreshTokenRepository.save(refreshToken);
 
         // 6. Trả response chuẩn
-        return AuthResponseDTO.builder()
+        return AuthResponse.builder()
                 .message("Đăng nhập thành công")
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenValue)
@@ -200,7 +200,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // =============== REFRESH TOKEN ===============
     @Override
     @Transactional
-    public AuthResponseDTO refreshToken(RefreshTokenRequestDTO refreshTokenRequest) {
+    public AuthResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
         String requestRefreshToken = refreshTokenRequest.getRefreshToken();
         
         RefreshToken refreshToken = refreshTokenRepository.findActiveByToken(requestRefreshToken, Instant.now())
@@ -228,7 +228,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         
         refreshTokenRepository.save(newRefreshToken);
         
-        return AuthResponseDTO.builder()
+        return AuthResponse.builder()
                 .message("Refresh token thành công")
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshTokenValue)
@@ -238,7 +238,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // =============== ĐĂNG XUẤT ===============
     @Override
     @Transactional
-    public void logout(LogoutRequestDTO logoutRequest) {
+    public void logout(LogoutRequest logoutRequest) {
         String refreshTokenValue = logoutRequest.getRefreshToken();
         
         RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenValue)

@@ -1,20 +1,20 @@
 package com.siupo.restaurant.service.authentication;
 
-import com.siupo.restaurant.dto.request.LoginRequestDTO;
-import com.siupo.restaurant.dto.request.RegisterRequestDTO;
-import com.siupo.restaurant.dto.request.RefreshTokenRequestDTO;
-import com.siupo.restaurant.dto.request.LogoutRequestDTO;
-import com.siupo.restaurant.dto.response.AuthResponseDTO;
+import com.siupo.restaurant.dto.request.LoginRequest;
+import com.siupo.restaurant.dto.request.RegisterRequest;
+import com.siupo.restaurant.dto.request.RefreshTokenRequest;
+import com.siupo.restaurant.dto.request.LogoutRequest;
+import com.siupo.restaurant.dto.response.AuthResponse;
 
 public interface AuthenticationService {
-    AuthResponseDTO login(LoginRequestDTO loginRequest);
+    AuthResponse login(LoginRequest loginRequest);
 
-    void  register(RegisterRequestDTO registerRequest);
+    void  register(RegisterRequest registerRequest);
     void confirmRegistration(String email, String otp);
 
     void resendOtp(String email);
     
-    AuthResponseDTO refreshToken(RefreshTokenRequestDTO refreshTokenRequest);
+    AuthResponse refreshToken(RefreshTokenRequest refreshTokenRequest);
     
-    void logout(LogoutRequestDTO logoutRequest);
+    void logout(LogoutRequest logoutRequest);
 }
