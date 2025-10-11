@@ -16,7 +16,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendOTPToEmail(String toEmail, String otp) throws MessagingException {
+    public boolean sendOTPToEmail(String toEmail, String otp) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
@@ -29,6 +29,8 @@ public class EmailServiceImpl implements EmailService {
         helper.setText(htmlContent, true);
 
         mailSender.send(message);
+
+        return true;
     }
 
     private String getHtmlContent(String otp) {

@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class AuthResponse {
+public class LoginDataResponse {
     private String message;
     private String accessToken;
     @JsonIgnore

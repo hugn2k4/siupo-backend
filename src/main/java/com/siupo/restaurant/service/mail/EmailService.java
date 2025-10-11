@@ -3,5 +3,5 @@ package com.siupo.restaurant.service.mail;
 import jakarta.mail.MessagingException;
 
 public interface EmailService {
-    void sendOTPToEmail(String toEmail, String otp) throws MessagingException;
+    boolean sendOTPToEmail(String toEmail, String otp) throws MessagingException;
 }

@@ -4,9 +4,9 @@ import com.siupo.restaurant.dto.request.LoginRequest;
 import com.siupo.restaurant.dto.request.RegisterRequest;
 import com.siupo.restaurant.dto.request.RefreshTokenRequest;
 import com.siupo.restaurant.dto.request.LogoutRequest;
-import com.siupo.restaurant.dto.response.AuthResponse;
+import com.siupo.restaurant.dto.response.LoginDataResponse;
+import com.siupo.restaurant.dto.response.MessageDataReponse;
 import com.siupo.restaurant.exception.BadRequestException;
-import com.siupo.restaurant.exception.NotFoundException;
 import com.siupo.restaurant.exception.UnauthorizedException;
 import com.siupo.restaurant.model.RefreshToken;
 import com.siupo.restaurant.model.User;
@@ -24,9 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -50,11 +48,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         private final RegisterRequest registerRequest;
         private final String otpHash;
         private final Instant expiryTime;
-        private int attempts = 0;
+        private int attempts = 5;
 
         public boolean isExpired() {
             return Instant.now().isAfter(expiryTime);
         }
+        public boolean attempts() { return attempts >0; }
     }
 
     public AuthenticationServiceImpl(UserRepository userRepository,
@@ -71,13 +70,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     // =============== ĐĂNG KÝ ===============
     @Override
-    public void register(RegisterRequest registerRequest) {
+    public MessageDataReponse register(RegisterRequest registerRequest) {
         if (userRepository.findByEmail(registerRequest.getEmail()).isPresent())
-            throw new BadRequestException("Email đã tồn tại!");
+            return new MessageDataReponse(false,"400","Email đã tồn tại!");
 
         PendingUser existing = pendingUsers.get(registerRequest.getEmail());
-        if (existing != null && !existing.isExpired()) {
-            throw new BadRequestException("Vui lòng kiểm tra email, mã OTP vẫn còn hiệu lực!");
+        if (existing != null && !existing.isExpired() && existing.attempts()) {
+            return new MessageDataReponse(true,"200","Vui lòng kiểm tra email, mã OTP vẫn còn hiệu lực!");
         }
 
         String otp = generateOTP();
@@ -87,31 +86,41 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 new PendingUser(registerRequest, otpHash, Instant.now().plusSeconds(300)));
 
         try {
-            emailService.sendOTPToEmail(registerRequest.getEmail(), otp);
+            if(emailService.sendOTPToEmail(registerRequest.getEmail(), otp))
+                return new MessageDataReponse(true,"201","Đã gửi mã OTP tới email!");
+            else {
+                pendingUsers.remove(registerRequest.getEmail());
+                return new MessageDataReponse(false,"400","Không thể gửi email OTP, vui lòng thử lại!");
+            }
+
         } catch (MessagingException e) {
             pendingUsers.remove(registerRequest.getEmail());
-            throw new BadRequestException("Không thể gửi email OTP, vui lòng thử lại!");
+            return new MessageDataReponse(false,"400","Không thể gửi email OTP, vui lòng thử lại!");
         }
     }
 
     // =============== XÁC NHẬN OTP ===============
     @Override
-    public void confirmRegistration(String email, String otp) {
+    public MessageDataReponse confirmRegistration(String email, String otp) {
         PendingUser pendingUser = pendingUsers.get(email);
 
         if (pendingUser == null || pendingUser.isExpired()) {
             pendingUsers.remove(email);
-            throw new BadRequestException("Yêu cầu đăng ký không tồn tại hoặc đã hết hạn!");
+            return new MessageDataReponse(false,"400","Yêu cầu đăng ký không tồn tại hoặc đã hết hạn!");
         }
 
-        if (pendingUser.attempts >= 5) {
+
+        if (pendingUser.attempts <= 0) {
             pendingUsers.remove(email);
-            throw new BadRequestException("Bạn đã nhập sai OTP quá 5 lần, vui lòng đăng ký lại!");
+            return new MessageDataReponse(false,"400","Bạn đã nhập sai OTP quá 5 lần, vui lòng đăng ký lại!");
         }
 
         if (!passwordEncoder.matches(otp, pendingUser.getOtpHash())) {
-            pendingUser.attempts++;
-            throw new BadRequestException("OTP không đúng!");
+            pendingUser.attempts--;
+            Map<String, Object> data = new HashMap<>();
+            data.put("attempt", pendingUser.attempts);
+            data.put("message", "Bạn còn lại " + pendingUser.attempts + " lượt");
+            return new MessageDataReponse(false,"400","OTP không đúng!",data);
         }
 
         RegisterRequest req = pendingUser.getRegisterRequest();
@@ -123,6 +132,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         userRepository.save(newUser);
         pendingUsers.remove(email);
+        return new MessageDataReponse(true,"200","Xác thực thành công! Tài khoản đã được tạo.");
     }
 
     // =============== GỬI LẠI OTP ===============
@@ -156,14 +166,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // =============== ĐĂNG NHẬP ===============
     @Override
     @Transactional
-    public AuthResponse login(LoginRequest loginRequest) {
+    public LoginDataResponse login(LoginRequest loginRequest) {
         // 1. Lấy user theo email
-        User user = userRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new NotFoundException("Tài khoản không tồn tại!"));
+        Optional<User> userOpt = userRepository.findByEmail(loginRequest.getEmail());
+        if (userOpt.isEmpty()) {
+            return LoginDataResponse.builder()
+                    .message("Đăng nhập thất bại: Tài khoản không tồn tại")
+                    .accessToken(null)
+                    .build();
+        }
+        User user = userOpt.get();
 
         // 2. Kiểm tra mật khẩu
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new UnauthorizedException("Mật khẩu không đúng!");
+            return LoginDataResponse.builder()
+                    .message("Đăng nhập thất bại: Mât khẩu không đúng")
+                    .accessToken(null)
+                    .build();
         }
 
         // 3. Revoke các refresh token cũ
@@ -190,7 +209,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         refreshTokenRepository.save(refreshToken);
 
         // 6. Trả response chuẩn
-        return AuthResponse.builder()
+        return LoginDataResponse.builder()
                 .message("Đăng nhập thành công")
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenValue)
@@ -200,7 +219,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // =============== REFRESH TOKEN ===============
     @Override
     @Transactional
-    public AuthResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
+    public LoginDataResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
         String requestRefreshToken = refreshTokenRequest.getRefreshToken();
         
         RefreshToken refreshToken = refreshTokenRepository.findActiveByToken(requestRefreshToken, Instant.now())
@@ -228,7 +247,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         
         refreshTokenRepository.save(newRefreshToken);
         
-        return AuthResponse.builder()
+        return LoginDataResponse.builder()
                 .message("Refresh token thành công")
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshTokenValue)
