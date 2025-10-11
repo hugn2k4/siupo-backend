@@ -5,7 +5,8 @@ import com.siupo.restaurant.dto.request.LogoutRequest;
 import com.siupo.restaurant.dto.request.RefreshTokenRequest;
 import com.siupo.restaurant.dto.request.RegisterRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
-import com.siupo.restaurant.dto.response.AuthResponse;
+import com.siupo.restaurant.dto.response.LoginDataResponse;
+import com.siupo.restaurant.dto.response.MessageDataReponse;
 import com.siupo.restaurant.service.authentication.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,10 +34,19 @@ public class AuthController {
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody LoginRequest request) {
-        AuthResponse response = authenticationService.login(request);
-
-        ResponseCookie refreshTokenCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, response.getRefreshToken())
+    public ResponseEntity<ApiResponse<LoginDataResponse>> login(@RequestBody LoginRequest request) {
+        LoginDataResponse dataResponse = authenticationService.login(request);
+        if (dataResponse.getAccessToken() == null) {
+            ApiResponse<LoginDataResponse> errorResponse = ApiResponse.<LoginDataResponse>builder()
+                    .success(false)
+                    .code("401")
+                    .message(dataResponse.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.ok()
+                    .body(errorResponse);
+        }
+        ResponseCookie refreshTokenCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, dataResponse.getRefreshToken())
                 .httpOnly(true)
                 .secure(true) // Chỉ gửi qua HTTPS (set false cho development)
                 .sameSite("Strict")
@@ -44,16 +54,11 @@ public class AuthController {
                 .path("/")
                 .build();
 
-        AuthResponse secureResponse = AuthResponse.builder()
-                .message(response.getMessage())
-                .accessToken(response.getAccessToken())
-                .build();
-        
-        ApiResponse<AuthResponse> apiResponse = ApiResponse.<AuthResponse>builder()
+        ApiResponse<LoginDataResponse> apiResponse = ApiResponse.<LoginDataResponse>builder()
                 .success(true)
                 .code("200")
                 .message("Đăng nhập thành công!")
-                .data(secureResponse)
+                .data(dataResponse)
                 .build();
         
         return ResponseEntity.ok()
@@ -63,25 +68,25 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<Void>> register(@RequestBody RegisterRequest user) {
-        authenticationService.register(user);
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(true)
-                .code("200")
-                .message("OTP đã được gửi tới email.")
+        MessageDataReponse messageDataReponse = authenticationService.register(user);
+        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
+                .success(messageDataReponse.isSuccess())
+                .code(messageDataReponse.getCode())
+                .message(messageDataReponse.getMessage())
                 .build();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(apiResponse);
     }
 
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponse<Void>> confirm(@RequestBody Map<String, String> body) {
         String email = body.get("email");
         String otp = body.get("otp");
-        authenticationService.confirmRegistration(email, otp);
+        MessageDataReponse dataReponse = authenticationService.confirmRegistration(email, otp);
 
         ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(true)
-                .code("200")
-                .message("Xác thực thành công! Tài khoản đã được tạo.")
+                .success(dataReponse.isSuccess())
+                .code(dataReponse.getCode())
+                .message(dataReponse.getMessage())
                 .build();
         return ResponseEntity.ok(response);
     }
@@ -98,11 +103,11 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(HttpServletRequest request) {
+    @PostMapping("/refresh-token")
+    public ResponseEntity<ApiResponse<LoginDataResponse>> refreshToken(HttpServletRequest request) {
         String refreshToken = getRefreshTokenFromCookie(request);
         if (refreshToken == null) {
-            ApiResponse<AuthResponse> errorResponse = ApiResponse.<AuthResponse>builder()
+            ApiResponse<LoginDataResponse> errorResponse = ApiResponse.<LoginDataResponse>builder()
                     .success(false)
                     .code("401")
                     .message("Refresh token không tồn tại")
@@ -112,7 +117,7 @@ public class AuthController {
         
         RefreshTokenRequest refreshRequest = new RefreshTokenRequest();
         refreshRequest.setRefreshToken(refreshToken);
-        AuthResponse authResponse = authenticationService.refreshToken(refreshRequest);
+        LoginDataResponse authResponse = authenticationService.refreshToken(refreshRequest);
 
         ResponseCookie newRefreshTokenCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, authResponse.getRefreshToken())
                 .httpOnly(true)
@@ -122,12 +127,12 @@ public class AuthController {
                 .path("/")
                 .build();
 
-        AuthResponse secureResponse = AuthResponse.builder()
+        LoginDataResponse secureResponse = LoginDataResponse.builder()
                 .message(authResponse.getMessage())
                 .accessToken(authResponse.getAccessToken())
                 .build();
 
-        ApiResponse<AuthResponse> response = ApiResponse.<AuthResponse>builder()
+        ApiResponse<LoginDataResponse> response = ApiResponse.<LoginDataResponse>builder()
                 .success(true)
                 .code("200")
                 .message("Refresh token thành công")

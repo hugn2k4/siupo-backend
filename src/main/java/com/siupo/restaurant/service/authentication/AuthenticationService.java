@@ -4,17 +4,18 @@ import com.siupo.restaurant.dto.request.LoginRequest;
 import com.siupo.restaurant.dto.request.RegisterRequest;
 import com.siupo.restaurant.dto.request.RefreshTokenRequest;
 import com.siupo.restaurant.dto.request.LogoutRequest;
-import com.siupo.restaurant.dto.response.AuthResponse;
+import com.siupo.restaurant.dto.response.LoginDataResponse;
+import com.siupo.restaurant.dto.response.MessageDataReponse;
 
 public interface AuthenticationService {
-    AuthResponse login(LoginRequest loginRequest);
+    LoginDataResponse login(LoginRequest loginRequest);
 
-    void  register(RegisterRequest registerRequest);
-    void confirmRegistration(String email, String otp);
+    MessageDataReponse register(RegisterRequest registerRequest);
+    MessageDataReponse confirmRegistration(String email, String otp);
 
     void resendOtp(String email);
     
-    AuthResponse refreshToken(RefreshTokenRequest refreshTokenRequest);
+    LoginDataResponse refreshToken(RefreshTokenRequest refreshTokenRequest);
     
     void logout(LogoutRequest logoutRequest);
 }

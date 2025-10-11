@@ -10,7 +10,6 @@ import jakarta.validation.constraints.NotBlank;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LogoutRequest {
-    
     @NotBlank(message = "Refresh token không được để trống")
     private String refreshToken;
 }
