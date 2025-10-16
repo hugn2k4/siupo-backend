@@ -20,20 +20,33 @@ public class PlaceTableForGuest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, length = 100)
+    private String fullname;
+
+    @Column(nullable = false, length = 20)
+    private String phoneNumber;
+
+    @Column(length = 100)
+    private String email;
+
+    @Column(nullable = false)
     private Integer memberInt;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private EPlaceTableStatus status;
 
-    private String fullname;
-    private String phoneNumber;
-
-    @CreationTimestamp
+    @Column(nullable = false)
     private LocalDateTime startedAt;
 
+    @Column(length = 500)
+    private String note;
+
     @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 }

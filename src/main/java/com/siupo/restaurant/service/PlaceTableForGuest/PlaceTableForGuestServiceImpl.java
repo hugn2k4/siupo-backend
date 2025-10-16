@@ -24,7 +24,8 @@ public class PlaceTableForGuestServiceImpl implements PlaceTableForGuestService 
     @Override
     @Transactional
     public PlaceTableForGuestResponse createPlaceTableRequest(PlaceTableForGuestRequest request) {
-        log.info("Creating place table request for guest: {}", request.getFullname());
+        log.info("Creating place table request for guest: {} - Phone: {}",
+                request.getFullname(), request.getPhoneNumber());
 
         // Validate time
         validateStartedTime(request.getStartedAt());
@@ -34,10 +35,12 @@ public class PlaceTableForGuestServiceImpl implements PlaceTableForGuestService 
 
         // Create entity
         PlaceTableForGuest placeTable = PlaceTableForGuest.builder()
-                .fullname(request.getFullname())
-                .phoneNumber(request.getPhoneNumber())
+                .fullname(request.getFullname().trim())
+                .phoneNumber(request.getPhoneNumber().trim())
+                .email(request.getEmail() != null ? request.getEmail().trim() : null)
                 .memberInt(request.getMemberInt())
                 .startedAt(request.getStartedAt())
+                .note(request.getNote() != null ? request.getNote().trim() : null)
                 .status(EPlaceTableStatus.PENDING)
                 .build();
 
@@ -49,34 +52,45 @@ public class PlaceTableForGuestServiceImpl implements PlaceTableForGuestService 
                     .id(savedTable.getId())
                     .fullname(savedTable.getFullname())
                     .phoneNumber(savedTable.getPhoneNumber())
+                    .email(savedTable.getEmail())
                     .memberInt(savedTable.getMemberInt())
                     .status(savedTable.getStatus())
                     .startedAt(savedTable.getStartedAt())
+                    .note(savedTable.getNote())
                     .createdAt(savedTable.getCreatedAt())
                     .message("Yêu cầu đặt bàn đã được gửi, quản lý sẽ liên hệ lại để xác nhận")
                     .build();
         } catch (Exception e) {
-            log.error("Error saving place table request: {}", e.getMessage());
+            log.error("Error saving place table request: {}", e.getMessage(), e);
             throw new BadRequestException("Không thể gửi yêu cầu, vui lòng thử lại sau");
         }
     }
 
     private void validateStartedTime(LocalDateTime startedAt) {
-        if (startedAt.isBefore(LocalDateTime.now())) {
+        LocalDateTime now = LocalDateTime.now();
+
+        if (startedAt.isBefore(now)) {
             throw new InvalidTimeException("Thời gian đặt bàn phải là thời điểm trong tương lai");
         }
 
-        // Optional: validate booking time is within business hours
+        // Validate booking time is within business hours (8:00 - 22:00)
         int hour = startedAt.getHour();
-        if (hour < 8 || hour > 22) {
+        if (hour < 8 || hour >= 22) {
             throw new InvalidTimeException("Thời gian đặt bàn phải trong khung giờ hoạt động (8:00 - 22:00)");
+        }
+
+        // Optional: Validate advance booking (e.g., at least 1 hour in advance)
+        LocalDateTime minimumBookingTime = now.plusHours(1);
+        if (startedAt.isBefore(minimumBookingTime)) {
+            throw new InvalidTimeException("Vui lòng đặt bàn trước ít nhất 1 giờ");
         }
     }
 
     private void validateMemberCount(Integer memberInt) {
-        if (memberInt <= 0) {
+        if (memberInt == null || memberInt <= 0) {
             throw new BadRequestException("Số lượng khách phải lớn hơn 0");
         }
+
         if (memberInt > 50) {
             throw new BadRequestException("Số lượng khách không được vượt quá 50 người, vui lòng liên hệ trực tiếp");
         }

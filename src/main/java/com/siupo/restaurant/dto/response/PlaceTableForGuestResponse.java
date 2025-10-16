@@ -13,12 +13,15 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class PlaceTableForGuestResponse {
+
     private Long id;
     private String fullname;
     private String phoneNumber;
+    private String email;
     private Integer memberInt;
     private EPlaceTableStatus status;
     private LocalDateTime startedAt;
+    private String note;
     private LocalDateTime createdAt;
     private String message;
 }

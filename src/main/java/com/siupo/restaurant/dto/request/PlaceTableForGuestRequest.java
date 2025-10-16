@@ -22,6 +22,10 @@ public class PlaceTableForGuestRequest {
     @Pattern(regexp = "^(0|\\+84)(3|5|7|8|9)[0-9]{8}$", message = "Số điện thoại không đúng định dạng")
     private String phoneNumber;
 
+    @Email(message = "Email không đúng định dạng")
+    @Size(max = 100, message = "Email không được vượt quá 100 ký tự")
+    private String email;
+
     @NotNull(message = "Số lượng khách không được để trống")
     @Min(value = 1, message = "Số lượng khách phải lớn hơn 0")
     @Max(value = 50, message = "Số lượng khách không được vượt quá 50 người")
