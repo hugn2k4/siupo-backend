@@ -1,9 +1,6 @@
 package com.siupo.restaurant.controller;
 
-import com.siupo.restaurant.dto.request.LoginRequest;
-import com.siupo.restaurant.dto.request.LogoutRequest;
-import com.siupo.restaurant.dto.request.RefreshTokenRequest;
-import com.siupo.restaurant.dto.request.RegisterRequest;
+import com.siupo.restaurant.dto.request.*;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.LoginDataResponse;
 import com.siupo.restaurant.dto.response.MessageDataReponse;
@@ -75,6 +72,28 @@ public class AuthController {
                 .message(messageDataReponse.getMessage())
                 .build();
         return ResponseEntity.ok(apiResponse);
+    }
+
+    @PostMapping("/request-forgot-password")
+    public ResponseEntity<ApiResponse<Void>> requestForgotPassword(@RequestParam String email) {
+        MessageDataReponse messageDataReponse = authenticationService.requestForgotPassword(email);
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(messageDataReponse.isSuccess())
+                .code(messageDataReponse.getCode())
+                .message(messageDataReponse.getMessage())
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/set-new-password")
+    public ResponseEntity<ApiResponse<Void>> setNewPassWord(@RequestBody ForgotPasswordRequest request) {
+        MessageDataReponse messageDataReponse = authenticationService.setNewPassword(request);
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(messageDataReponse.isSuccess())
+                .code(messageDataReponse.getCode())
+                .message(messageDataReponse.getMessage())
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/confirm")
