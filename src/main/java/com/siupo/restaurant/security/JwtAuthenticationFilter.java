@@ -28,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/auth/register",
             "/api/auth/resend-otp",
             "/api/auth/refresh",
+            "/api/auth/request-forgot-password",
             "/error"
     );
 
