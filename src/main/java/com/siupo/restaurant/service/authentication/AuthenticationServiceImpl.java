@@ -1,10 +1,12 @@
 package com.siupo.restaurant.service.authentication;
 
+import com.siupo.restaurant.dto.UserDTO;
 import com.siupo.restaurant.dto.request.*;
 import com.siupo.restaurant.dto.response.LoginDataResponse;
 import com.siupo.restaurant.dto.response.MessageDataReponse;
 import com.siupo.restaurant.exception.BadRequestException;
 import com.siupo.restaurant.exception.UnauthorizedException;
+import com.siupo.restaurant.model.Customer;
 import com.siupo.restaurant.model.RefreshToken;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.repository.RefreshTokenRepository;
@@ -12,6 +14,7 @@ import com.siupo.restaurant.repository.UserRepository;
 import com.siupo.restaurant.security.JwtUtils;
 import com.siupo.restaurant.service.mail.EmailService;
 import jakarta.mail.MessagingException;
+import jakarta.persistence.DiscriminatorValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -110,7 +113,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         RegisterRequest req = pendingUser.getDataRequest();
-        User newUser = User.builder()
+        Customer newUser = Customer.builder()
                 .fullName(req.getFullName())
                 .email(req.getEmail())
                 .password(passwordEncoder.encode(req.getPassword()))
@@ -162,6 +165,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             return LoginDataResponse.builder()
                     .message("Đăng nhập thất bại: Tài khoản không tồn tại")
                     .accessToken(null)
+                    .refreshToken(null)
+                    .user(null)
                     .build();
         }
         User user = userOpt.get();
@@ -171,6 +176,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             return LoginDataResponse.builder()
                     .message("Đăng nhập thất bại: Mât khẩu không đúng")
                     .accessToken(null)
+                    .refreshToken(null)
+                    .user(null)
                     .build();
         }
 
@@ -197,11 +204,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         refreshTokenRepository.save(refreshToken);
 
-        // 6. Trả response chuẩn
+        // 6. Convert User sang UserDTO
+        UserDTO userDTO = UserDTO.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .phoneNumber(user.getPhoneNumber())
+                .role(user.getClass().getAnnotation(DiscriminatorValue.class).value())
+                .build();
+
+        // 7. Trả về LoginDataResponse
         return LoginDataResponse.builder()
                 .message("Đăng nhập thành công")
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenValue)
+                .user(userDTO)
                 .build();
     }
 
