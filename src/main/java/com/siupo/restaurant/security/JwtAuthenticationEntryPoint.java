@@ -24,7 +24,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setCharacterEncoding("UTF-8");
 
         Map<String, Object> errorDetails = Map.of(
-                "success", false,
+            "success", false,
             "message", "Bạn cần đăng nhập để truy cập tài nguyên này",
             "error", "UNAUTHORIZED",
             "status", 401,
