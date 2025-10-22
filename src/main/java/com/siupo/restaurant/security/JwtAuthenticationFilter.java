@@ -33,7 +33,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/auth/resend-otp",
             "/api/auth/refresh",
             "/api/auth/request-forgot-password",
-            "/error"
+            "/error",
+            "/api/place-table-for-guest/place-table"
     );
 
 
