@@ -1,5 +1,7 @@
 package com.siupo.restaurant.security;
 
+import com.siupo.restaurant.model.User;
+import com.siupo.restaurant.service.user.UserServiceImpl;
 import io.micrometer.common.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,9 +20,11 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
+    private final UserServiceImpl userService;
 
-    public JwtAuthenticationFilter(JwtUtils jwtUtils) {
+    public JwtAuthenticationFilter(JwtUtils jwtUtils, UserServiceImpl userService) {
         this.jwtUtils = jwtUtils;
+        this.userService = userService;
     }
 
     private static final List<String> WHITELIST = List.of(
@@ -28,6 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/auth/register",
             "/api/auth/resend-otp",
             "/api/auth/refresh",
+            "/api/auth/request-forgot-password",
             "/error"
     );
 
@@ -47,13 +52,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        if (authHeader != null && authHeader.toLowerCase().startsWith("bearer ")) {
             String token = authHeader.substring(7);
             if (jwtUtils.validateToken(token)) {
                 String email = jwtUtils.getEmailFromToken(token);
+                User user = userService.getUserByEmail(email);
                 if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(email, null, null);
+                            new UsernamePasswordAuthenticationToken(user, null, null);
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);

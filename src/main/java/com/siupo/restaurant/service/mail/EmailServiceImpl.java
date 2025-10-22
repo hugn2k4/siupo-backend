@@ -111,11 +111,11 @@ public class EmailServiceImpl implements EmailService {
                 <div class="email-wrapper">
                     <div class="email-container">
                         <div class="header">
-                            <h1>Xác nhận tài khoản</h1>
+                            <h1>Mã xác nhận OTP</h1>
                         </div>
                         <div class="intro">
                             Xin chào,<br/><br/>
-                            Chúng tôi đã nhận được yêu cầu tạo hoặc đăng nhập tài khoản của bạn.\s
+                            Chúng tôi đã nhận được yêu cầu của bạn.\s
                             Vui lòng sử dụng mã OTP dưới đây để hoàn tất quá trình xác thực.\s
                             Mã này chỉ có hiệu lực trong 1 phút và không được chia sẻ với bất kỳ ai.
                         </div>

@@ -1,13 +1,12 @@
 package com.siupo.restaurant.service.authentication;
 
-import com.siupo.restaurant.dto.request.LoginRequest;
-import com.siupo.restaurant.dto.request.RegisterRequest;
-import com.siupo.restaurant.dto.request.RefreshTokenRequest;
-import com.siupo.restaurant.dto.request.LogoutRequest;
+import com.siupo.restaurant.dto.UserDTO;
+import com.siupo.restaurant.dto.request.*;
 import com.siupo.restaurant.dto.response.LoginDataResponse;
 import com.siupo.restaurant.dto.response.MessageDataReponse;
 import com.siupo.restaurant.exception.BadRequestException;
 import com.siupo.restaurant.exception.UnauthorizedException;
+import com.siupo.restaurant.model.Customer;
 import com.siupo.restaurant.model.RefreshToken;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.repository.RefreshTokenRepository;
@@ -15,6 +14,7 @@ import com.siupo.restaurant.repository.UserRepository;
 import com.siupo.restaurant.security.JwtUtils;
 import com.siupo.restaurant.service.mail.EmailService;
 import jakarta.mail.MessagingException;
+import jakarta.persistence.DiscriminatorValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,13 +39,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenExpiration;
 
-    // Danh sách user đang chờ xác thực OTP
-    private final Map<String, PendingUser> pendingUsers = new ConcurrentHashMap<>();
-    // Cấu trúc lưu user chờ xác nhận
+    private final Map<String, Pending<RegisterRequest>> pendingRegisters = new ConcurrentHashMap<>();
+    private final Map<String, Pending<String>> pendingForgotPasswords = new ConcurrentHashMap<>();
+
     @Getter
     @RequiredArgsConstructor
-    private static class PendingUser {
-        private final RegisterRequest registerRequest;
+    private static class Pending<T> {
+        private final T dataRequest;
         private final String otpHash;
         private final Instant expiryTime;
         private int attempts = 5;
@@ -74,7 +74,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (userRepository.findByEmail(registerRequest.getEmail()).isPresent())
             return new MessageDataReponse(false,"400","Email đã tồn tại!");
 
-        PendingUser existing = pendingUsers.get(registerRequest.getEmail());
+        Pending<RegisterRequest> existing = pendingRegisters.get(registerRequest.getEmail());
         if (existing != null && !existing.isExpired() && existing.attempts()) {
             return new MessageDataReponse(true,"200","Vui lòng kiểm tra email, mã OTP vẫn còn hiệu lực!");
         }
@@ -82,36 +82,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String otp = generateOTP();
         String otpHash = passwordEncoder.encode(otp);
 
-        pendingUsers.put(registerRequest.getEmail(),
-                new PendingUser(registerRequest, otpHash, Instant.now().plusSeconds(300)));
+        pendingRegisters.put(registerRequest.getEmail(),
+                new Pending<RegisterRequest>(registerRequest, otpHash, Instant.now().plusSeconds(300)));
 
-        try {
-            if(emailService.sendOTPToEmail(registerRequest.getEmail(), otp))
-                return new MessageDataReponse(true,"201","Đã gửi mã OTP tới email!");
-            else {
-                pendingUsers.remove(registerRequest.getEmail());
-                return new MessageDataReponse(false,"400","Không thể gửi email OTP, vui lòng thử lại!");
-            }
-
-        } catch (MessagingException e) {
-            pendingUsers.remove(registerRequest.getEmail());
-            return new MessageDataReponse(false,"400","Không thể gửi email OTP, vui lòng thử lại!");
-        }
+        return sendEmail(registerRequest.getEmail(), otp);
     }
 
     // =============== XÁC NHẬN OTP ===============
     @Override
     public MessageDataReponse confirmRegistration(String email, String otp) {
-        PendingUser pendingUser = pendingUsers.get(email);
+        Pending<RegisterRequest> pendingUser = pendingRegisters.get(email);
 
         if (pendingUser == null || pendingUser.isExpired()) {
-            pendingUsers.remove(email);
+            pendingRegisters.remove(email);
             return new MessageDataReponse(false,"400","Yêu cầu đăng ký không tồn tại hoặc đã hết hạn!");
         }
 
 
         if (pendingUser.attempts <= 0) {
-            pendingUsers.remove(email);
+            pendingRegisters.remove(email);
             return new MessageDataReponse(false,"400","Bạn đã nhập sai OTP quá 5 lần, vui lòng đăng ký lại!");
         }
 
@@ -123,24 +112,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             return new MessageDataReponse(false,"400","OTP không đúng!",data);
         }
 
-        RegisterRequest req = pendingUser.getRegisterRequest();
-        User newUser = User.builder()
+        RegisterRequest req = pendingUser.getDataRequest();
+        Customer newUser = Customer.builder()
                 .fullName(req.getFullName())
                 .email(req.getEmail())
                 .password(passwordEncoder.encode(req.getPassword()))
                 .build();
 
         userRepository.save(newUser);
-        pendingUsers.remove(email);
+        pendingRegisters.remove(email);
         return new MessageDataReponse(true,"200","Xác thực thành công! Tài khoản đã được tạo.");
     }
 
     // =============== GỬI LẠI OTP ===============
     @Override
     public void resendOtp(String email) {
-        PendingUser pendingUser = pendingUsers.get(email);
+        Pending<RegisterRequest> pendingRegister = pendingRegisters.get(email);
+        Pending<String> pendingForgotPassword = pendingForgotPasswords.get(email);
 
-        if (pendingUser == null)
+        if (pendingRegister == null && pendingForgotPassword == null)
             throw new BadRequestException("Không tìm thấy yêu cầu đăng ký nào cho email này!");
 
         // Tạo OTP mới
@@ -148,8 +138,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String newOtpHash = passwordEncoder.encode(newOtp);
         Instant newExpiry = Instant.now().plusSeconds(300);
 
-        pendingUsers.put(email, new PendingUser(pendingUser.getRegisterRequest(), newOtpHash, newExpiry));
-
+        if(pendingRegister != null)
+            pendingRegisters.put(email, new Pending<RegisterRequest>(pendingRegister.getDataRequest(), newOtpHash, newExpiry));
+        else
+            pendingForgotPasswords.put(email, new Pending<String>(email, newOtpHash, newExpiry));
         try {
             emailService.sendOTPToEmail(email, newOtp);
         } catch (MessagingException e) {
@@ -160,7 +152,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // =============== DỌN OTP HẾT HẠN ===============
     @Scheduled(fixedRate = 60000)
     public void cleanupExpiredPendingUsers() {
-        pendingUsers.entrySet().removeIf(entry -> entry.getValue().isExpired());
+        pendingRegisters.entrySet().removeIf(entry -> entry.getValue().isExpired());
     }
 
     // =============== ĐĂNG NHẬP ===============
@@ -173,6 +165,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             return LoginDataResponse.builder()
                     .message("Đăng nhập thất bại: Tài khoản không tồn tại")
                     .accessToken(null)
+                    .refreshToken(null)
+                    .user(null)
                     .build();
         }
         User user = userOpt.get();
@@ -182,6 +176,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             return LoginDataResponse.builder()
                     .message("Đăng nhập thất bại: Mât khẩu không đúng")
                     .accessToken(null)
+                    .refreshToken(null)
+                    .user(null)
                     .build();
         }
 
@@ -208,11 +204,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         refreshTokenRepository.save(refreshToken);
 
-        // 6. Trả response chuẩn
+        // 6. Convert User sang UserDTO
+        UserDTO userDTO = UserDTO.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .phoneNumber(user.getPhoneNumber())
+                .role(user.getClass().getAnnotation(DiscriminatorValue.class).value())
+                .build();
+
+        // 7. Trả về LoginDataResponse
         return LoginDataResponse.builder()
                 .message("Đăng nhập thành công")
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenValue)
+                .user(userDTO)
                 .build();
     }
 
@@ -284,5 +290,71 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // =============== HÀM TẠO MÃ OTP ===============
     private String generateOTP() {
         return String.valueOf((int) (Math.random() * 900000) + 100000);
+    }
+    
+    @Override
+    public MessageDataReponse requestForgotPassword(String email) {
+        if (!userRepository.findByEmail(email).isPresent())
+            return new MessageDataReponse(false,"400","Email chưa đươc đăng ký!");
+
+        Pending<String> existing = pendingForgotPasswords.get(email);
+        if (existing != null && !existing.isExpired() && existing.attempts()) {
+            return new MessageDataReponse(true,"200","Vui lòng kiểm tra email, mã OTP vẫn còn hiệu lực!");
+        }
+
+        String otp = generateOTP();
+        String otpHash = passwordEncoder.encode(otp);
+
+        pendingForgotPasswords.put(email,
+                new Pending<String>(email, otpHash, Instant.now().plusSeconds(300)));
+
+        return sendEmail(email, otp);
+    }
+
+    @Override
+    public MessageDataReponse setNewPassword(ForgotPasswordRequest forgotPasswordRequest) {
+        Pending<String> pendingRequest = pendingForgotPasswords.get(forgotPasswordRequest.getEmail());
+
+        if (pendingRequest == null || pendingRequest.isExpired()) {
+            pendingForgotPasswords.remove(forgotPasswordRequest.getEmail());
+            return new MessageDataReponse(false,"400","Yêu cầu đặt lại mật khẩu không tồn tại hoặc đã hết hạn!");
+        }
+
+        if (pendingRequest.attempts <= 0) {
+            pendingForgotPasswords.remove(forgotPasswordRequest.getEmail());
+            return new MessageDataReponse(false,"400","Bạn đã nhập sai OTP quá 5 lần, vui lòng thử lại!");
+        }
+
+        if (!passwordEncoder.matches(forgotPasswordRequest.getOtp(), pendingRequest.getOtpHash())) {
+            pendingRequest.attempts--;
+            Map<String, Object> data = new HashMap<>();
+            data.put("attempt", pendingRequest.attempts);
+            data.put("message", "Bạn còn lại " + pendingRequest.attempts + " lượt");
+            return new MessageDataReponse(false,"400","OTP không đúng!",data);
+        }
+
+        User user = userRepository.findByEmail(forgotPasswordRequest.getEmail())
+                .orElseThrow(() -> new BadRequestException("Người dùng không tồn tại!"));
+
+        user.setPassword(passwordEncoder.encode(forgotPasswordRequest.getNewPassword()));
+        userRepository.save(user);
+        pendingForgotPasswords.remove(forgotPasswordRequest.getEmail());
+        return new MessageDataReponse(true,"200","Đặt lại mật khẩu thành công!");
+    }
+
+    private MessageDataReponse sendEmail(String email, String otp) {
+        try {
+            if (emailService.sendOTPToEmail(email, otp))
+                return new MessageDataReponse(true, "201", "Đã gửi mã OTP tới email!");
+            else {
+                pendingForgotPasswords.remove(email);
+                return new MessageDataReponse(false, "400", "Không thể gửi email OTP, vui lòng thử lại!");
+            }
+
+        }
+        catch (MessagingException e) {
+            pendingForgotPasswords.remove(email);
+            return new MessageDataReponse(false, "400", "Không thể gửi email OTP, vui lòng thử lại!");
+        }
     }
 }
