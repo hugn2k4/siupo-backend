@@ -35,7 +35,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final JwtUtils jwtUtils;
     private final BCryptPasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    
+
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenExpiration;
 
@@ -174,7 +174,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         // 2. Kiểm tra mật khẩu
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             return LoginDataResponse.builder()
-                    .message("Đăng nhập thất bại: Mât khẩu không đúng")
+                    .message("Đăng nhập thất bại: Mật khẩu không đúng")
                     .accessToken(null)
                     .refreshToken(null)
                     .user(null)
@@ -184,7 +184,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         // 3. Revoke các refresh token cũ
         List<RefreshToken> existingTokens = refreshTokenRepository.findAllByUserAndRevokedFalse(user);
         existingTokens.forEach(token -> token.setRevoked(true));
-        refreshTokenRepository.saveAllAndFlush(existingTokens); // flush ngay tránh khóa DB
+        refreshTokenRepository.saveAllAndFlush(existingTokens);
 
         // 4. Tạo access token mới
         String accessToken = jwtUtils.generateAccessToken(user.getEmail());
@@ -204,13 +204,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         refreshTokenRepository.save(refreshToken);
 
+        String userRole = getUserRole(user);
+
         // 6. Convert User sang UserDTO
         UserDTO userDTO = UserDTO.builder()
                 .id(user.getId())
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
-                .role(user.getClass().getAnnotation(DiscriminatorValue.class).value())
+                .role(userRole)
                 .build();
 
         // 7. Trả về LoginDataResponse
@@ -222,27 +224,44 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
     }
 
+    /**
+     * ✅ Phương thức an toàn để lấy role từ User
+     * Hỗ trợ nhiều cách lấy role khác nhau
+     */
+    private String getUserRole(User user) {
+        // Cách 1: Lấy từ @DiscriminatorValue annotation (nếu có)
+        DiscriminatorValue discriminatorValue = user.getClass().getAnnotation(DiscriminatorValue.class);
+        if (discriminatorValue != null) {
+            return discriminatorValue.value();
+        }
+
+        // Cách 2: Lấy từ simple class name
+        // Customer -> CUSTOMER, Admin -> ADMIN, Staff -> STAFF
+        String className = user.getClass().getSimpleName();
+        return className.toUpperCase();
+    }
+
     // =============== REFRESH TOKEN ===============
     @Override
     @Transactional
     public LoginDataResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
         String requestRefreshToken = refreshTokenRequest.getRefreshToken();
-        
+
         RefreshToken refreshToken = refreshTokenRepository.findActiveByToken(requestRefreshToken, Instant.now())
                 .orElseThrow(() -> new UnauthorizedException("Refresh token không hợp lệ hoặc đã hết hạn!"));
-        
+
         User user = refreshToken.getUser();
-        
+
         // Tạo access token mới
         String newAccessToken = jwtUtils.generateAccessToken(user.getEmail());
-        
+
         // Token rotation: tạo refresh token mới
         String newRefreshTokenValue = UUID.randomUUID().toString();
-        
+
         // Revoke refresh token cũ
         refreshToken.setRevoked(true);
         refreshTokenRepository.save(refreshToken);
-        
+
         // Tạo refresh token mới
         RefreshToken newRefreshToken = RefreshToken.builder()
                 .token(newRefreshTokenValue)
@@ -250,9 +269,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .expiryDate(Instant.now().plusMillis(refreshTokenExpiration))
                 .revoked(false)
                 .build();
-        
+
         refreshTokenRepository.save(newRefreshToken);
-        
+
         return LoginDataResponse.builder()
                 .message("Refresh token thành công")
                 .accessToken(newAccessToken)
@@ -265,10 +284,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     public void logout(LogoutRequest logoutRequest) {
         String refreshTokenValue = logoutRequest.getRefreshToken();
-        
+
         RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenValue)
                 .orElseThrow(() -> new BadRequestException("Refresh token không tồn tại!"));
-        
+
         // Đánh dấu refresh token là revoked
         refreshToken.setRevoked(true);
         refreshTokenRepository.save(refreshToken);
@@ -280,10 +299,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void cleanupTokens() {
         // Xóa expired tokens
         refreshTokenRepository.deleteExpiredTokens(Instant.now());
-        
+
         // Xóa revoked tokens
         refreshTokenRepository.deleteRevokedTokens();
-        
+
         System.out.println("🧹 Đã dọn dẹp refresh tokens hết hạn và revoked");
     }
 
@@ -291,11 +310,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private String generateOTP() {
         return String.valueOf((int) (Math.random() * 900000) + 100000);
     }
-    
+
     @Override
     public MessageDataReponse requestForgotPassword(String email) {
         if (!userRepository.findByEmail(email).isPresent())
-            return new MessageDataReponse(false,"400","Email chưa đươc đăng ký!");
+            return new MessageDataReponse(false,"400","Email chưa được đăng ký!");
 
         Pending<String> existing = pendingForgotPasswords.get(email);
         if (existing != null && !existing.isExpired() && existing.attempts()) {
