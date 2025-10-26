@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @SuperBuilder
 @DiscriminatorValue("CUSTOMER")
+@ToString(exclude = {"orders", "cart", "wishlist", "addresses", "defaultAddress"})
 public class Customer extends User {
 
     private Double totalSpent = 0.0;
