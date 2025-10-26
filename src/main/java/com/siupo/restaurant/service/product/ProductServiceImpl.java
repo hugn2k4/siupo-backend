@@ -127,4 +127,9 @@ public class ProductServiceImpl implements ProductService {
                 : productRepository.findAll(spec, pageable).map(this::toDTO);
     }
 
+        @Override
+        public Product getProductEntityById(Long id) {
+            return productRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+        }
 }
