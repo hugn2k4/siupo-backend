@@ -34,5 +34,5 @@ public class Customer extends User {
 
     @OneToOne
     @JoinColumn(name = "default_address_id")
-    private Address defaultAddress;
+    private Address defaultAddress; 
 }

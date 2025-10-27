@@ -17,7 +17,9 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Arrays;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j  // ✅ Lombok tự động tạo logger
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -32,6 +34,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginDataResponse>> login(@RequestBody LoginRequest request) {
+        try {
         LoginDataResponse dataResponse = authenticationService.login(request);
         if (dataResponse.getAccessToken() == null) {
             ApiResponse<LoginDataResponse> errorResponse = ApiResponse.<LoginDataResponse>builder()
@@ -61,6 +64,15 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
                 .body(apiResponse);
+        } catch (Exception e) {
+            log.error("Login error: ", e);  // ⚠️ XEM LOG ĐỂ BIẾT LỖI CỤ THỂ
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<LoginDataResponse>builder()
+                            .success(false)
+                            .code("500")
+                            .message("Internal server error")
+                            .build());
+        }
     }
 
     @PostMapping("/register")
