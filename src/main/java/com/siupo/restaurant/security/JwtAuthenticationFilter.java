@@ -36,7 +36,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/error",
             "/api/categories",
             "/api/products",
-            "/api/products/search"
+            "/api/products/search",
+            "/error",
+            "/api/place-table-for-guest/place-table"
     );
 
 

@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
+public interface ProductRepository extends JpaRepository<Product, Long>,
+        JpaSpecificationExecutor<Product> {
     List<Product> findByNameContainingIgnoreCase(String name);
+    List<Product> findByIdIn(List<Long> ids);
 }

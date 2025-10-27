@@ -74,6 +74,7 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "Bạn không có quyền truy cập tài nguyên này");
     }
 
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleOther(Exception ex) {
         Map<String, String> errorData = Map.of(
                 "exception", ex.getClass().getSimpleName(),
@@ -101,5 +102,18 @@ public class GlobalExceptionHandler {
                 .data(errors)
                 .build();
         return ResponseEntity.badRequest().body(response);
+    }
+    @ExceptionHandler(InvalidTimeException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidTime(InvalidTimeException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+    @ExceptionHandler(OutOfStockException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOutOfStock(OutOfStockException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidQRException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidQR(InvalidQRException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 }
