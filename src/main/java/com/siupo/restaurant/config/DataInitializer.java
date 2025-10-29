@@ -37,9 +37,6 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             userRepository.save(admin);
-            System.out.println("✅ Default admin created: " + defaultAdminEmail + " / " + defaultAdminPassword);
-        } else {
-            System.out.println("ℹ️ Default admin already exists: " + defaultAdminEmail);
         }
     }
 }
