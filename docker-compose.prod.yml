@@ -1,32 +1,15 @@
 version: "3.8"
 
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: siupo-mysql-prod
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-siupo_db}
-    volumes:
-      - mysql-prod-data:/var/lib/mysql
-    networks:
-      - siupo-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
   app:
     build: .
     image: siupo-restaurant:prod
     container_name: siupo-app-prod
     ports:
-      - "${PORT:-8080}:8080"
+      - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
-      - PORT=8080
+      - PORT=${PORT:-8080}
       - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
       - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
       - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
@@ -37,15 +20,9 @@ services:
       - APP_DEFAULT_ADMIN_PASSWORD=${APP_DEFAULT_ADMIN_PASSWORD}
       - APP_DEFAULT_ADMIN_FULLNAME=${APP_DEFAULT_ADMIN_FULLNAME:-System Administrator}
       - JAVA_OPTS=${JAVA_OPTS:--Xms512m -Xmx1024m}
-    depends_on:
-      mysql:
-        condition: service_healthy
     networks:
       - siupo-network
     restart: unless-stopped
-
-volumes:
-  mysql-prod-data:
 
 networks:
   siupo-network:

@@ -22,12 +22,20 @@ public class Wishlist {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToMany
-    @JoinTable(
-            name = "wishlist_items",
-            joinColumns = @JoinColumn(name = "wishlist_id"),
-            inverseJoinColumns = @JoinColumn(name = "product_id")
-    )
+    @OneToMany(mappedBy = "wishlist", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<Product> products = new ArrayList<>();
+    private List<WishlistItem> items = new ArrayList<>();
+    
+    // Helper methods to add/remove products
+    public void addProduct(Product product) {
+        WishlistItem item = WishlistItem.builder()
+                .wishlist(this)
+                .product(product)
+                .build();
+        items.add(item);
+    }
+    
+    public void removeProduct(Product product) {
+        items.removeIf(item -> item.getProduct().equals(product));
+    }
 }
