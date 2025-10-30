@@ -1,0 +1,17 @@
+# Bỏ qua các thư mục và file không cần thiết khi build Docker image
+
+target/
+.mvn/
+_.log
+_.iml
+_.iws
+_.ipr
+.idea/
+.vscode/
+.git/
+.gitignore
+README.md
+Dockerfile
+docker-compose*.yml
+.env
+.env.*

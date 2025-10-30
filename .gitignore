@@ -34,3 +34,19 @@ build/
 
 # Local Spring Boot config
 src/main/resources/application-dev.properties
+
+### Docker & Environment ###
+.env
+.env.*
+.env.local
+.env.*.local
+docker-compose.override.yml
+
+### Logs ###
+*.log
+logs/
+
+### Backup files ###
+*.sql
+*.dump
+backup*.sql
