@@ -12,10 +12,17 @@ WORKDIR /app
 
 # Tạo user không phải root để chạy ứng dụng
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
 
 # Copy JAR đã build từ stage 1
 COPY --from=build /app/target/restaurant-0.0.1-SNAPSHOT.jar app.jar
+
+# Copy SSL certificate cho Aiven MySQL
+COPY src/main/resources/ca.pem /app/ca.pem
+
+# Change ownership to spring user
+RUN chown spring:spring /app/ca.pem
+
+USER spring:spring
 
 # Biến môi trường mặc định
 ENV PORT=8080

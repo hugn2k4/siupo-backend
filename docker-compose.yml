@@ -25,9 +25,9 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/siupo_db?allowPublicKeyRetrieval=true&useSSL=false}
-      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
-      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD:-123456}
-      - JAVA_OPTS=${JAVA_OPTS:--Xms256m -Xmx512m}
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=123456
+      - JAVA_OPTS=-Xms256m -Xmx512m
     depends_on:
       mysql:
         condition: service_healthy
