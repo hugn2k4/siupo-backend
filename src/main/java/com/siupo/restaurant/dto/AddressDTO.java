@@ -33,6 +33,4 @@ public class AddressDTO {
     @NotBlank(message = "Số điện thoại không được để trống")
     @Pattern(regexp = "^\\d{10,11}$", message = "Số điện thoại phải có 10-11 chữ số")
     private String receiverPhone;
-
-    private Boolean isDefault;
 }

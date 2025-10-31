@@ -11,11 +11,5 @@ public interface UserService {
     User getUserByEmail(String email);
     User getCurrentUserInfo(User user);
     User updateUserInfo(User user, UserRequest request);
-    //Address
-    List<AddressDTO> getUserAddresses(User user);
-    AddressDTO addAddress(User user, AddressDTO addressDTO);
-    AddressDTO updateAddress(User user, Long addressId, AddressDTO addressDTO);
-    void deleteAddress(User user, Long addressId);
-    //Password
     void changePassword(User user, ChangePasswordRequest request);
 }
