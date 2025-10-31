@@ -51,4 +51,6 @@ public class User {
     @Builder.Default
     private EUserStatus status = EUserStatus.ACTIVE;
 
+    @Column(name = "role", insertable = false, updatable = false)
+    private String role;
 }
