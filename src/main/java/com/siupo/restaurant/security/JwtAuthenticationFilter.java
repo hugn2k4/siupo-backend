@@ -1,6 +1,7 @@
 package com.siupo.restaurant.security;
 
 import com.siupo.restaurant.model.User;
+import com.siupo.restaurant.service.user.UserService;
 import com.siupo.restaurant.service.user.UserServiceImpl;
 import io.micrometer.common.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,9 +22,9 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
-    private final UserServiceImpl userService;
+    private final UserService userService;
 
-    public JwtAuthenticationFilter(JwtUtils jwtUtils, UserServiceImpl userService) {
+    public JwtAuthenticationFilter(JwtUtils jwtUtils, UserService userService) {
         this.jwtUtils = jwtUtils;
         this.userService = userService;
     }
