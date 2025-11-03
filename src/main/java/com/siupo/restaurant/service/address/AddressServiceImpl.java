@@ -1,6 +1,7 @@
 package com.siupo.restaurant.service.address;
 
 import com.siupo.restaurant.dto.AddressDTO;
+import com.siupo.restaurant.dto.response.AddressResponse;
 import com.siupo.restaurant.exception.BadRequestException;
 import com.siupo.restaurant.exception.NotFoundException;
 import com.siupo.restaurant.exception.UnauthorizedException;
@@ -25,7 +26,7 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     @Transactional
-    public AddressDTO addAddress(User user, AddressDTO dto) {
+    public AddressResponse addAddress(User user, AddressDTO dto) {
         Customer customer = getCustomer(user);
 
         Address address = Address.builder()
@@ -40,27 +41,29 @@ public class AddressServiceImpl implements AddressService {
 
         Address saved = addressRepository.save(address);
 
-
         long addressCount = addressRepository.countByUserId(customer.getId());
-        if (addressCount == 1) { // Chỉ có 1 địa chỉ (vừa thêm)
+        if (addressCount == 1) {
             customer.setDefaultAddress(saved);
             userRepository.save(customer);
         }
 
-        return toDTO(saved);
+        return toResponse(saved, customer);
     }
 
     @Override
     @Transactional
-    public AddressDTO updateAddress(User user, Long id, AddressDTO dto) {
+    public AddressResponse updateAddress(User user, Long id, AddressDTO dto) {
+        Customer customer = getCustomer(user);
         Address address = getAddressByIdAndUser(id, user);
+
         address.setAddress(dto.getAddressLine());
         address.setWard(dto.getWard());
         address.setDistrict(dto.getDistrict());
         address.setProvince(dto.getProvince());
         address.setReceiverName(dto.getReceiverName());
         address.setReceiverPhone(dto.getReceiverPhone());
-        return toDTO(addressRepository.save(address));
+
+        return toResponse(addressRepository.save(address), customer);
     }
 
     @Override
@@ -74,30 +77,30 @@ public class AddressServiceImpl implements AddressService {
         }
 
         addressRepository.delete(address);
-        userRepository.save(customer);
     }
 
     @Override
     @Transactional
-    public AddressDTO setDefaultAddress(User user, Long id) {
+    public AddressResponse setDefaultAddress(User user, Long id) {
         Customer customer = getCustomer(user);
         Address address = getAddressByIdAndUser(id, user);
         customer.setDefaultAddress(address);
         userRepository.save(customer);
-        return toDTO(address);
+        return toResponse(address, customer);
     }
 
     @Override
-    public AddressDTO getDefaultAddress(User user) {
+    public AddressResponse getDefaultAddress(User user) {
         Customer customer = getCustomer(user);
         Address def = customer.getDefaultAddress();
-        return def != null ? toDTO(def) : null;
+        return def != null ? toResponse(def, customer) : null;
     }
 
     @Override
-    public List<AddressDTO> getAddresses(User user) {
+    public List<AddressResponse> getAddresses(User user) {
+        Customer customer = getCustomer(user);
         return addressRepository.findByUser(user).stream()
-                .map(this::toDTO)
+                .map(address -> toResponse(address, customer))
                 .toList();
     }
 
@@ -113,14 +116,19 @@ public class AddressServiceImpl implements AddressService {
                 .orElseThrow(() -> new NotFoundException("Địa chỉ không tồn tại hoặc không có quyền"));
     }
 
-    private AddressDTO toDTO(Address a) {
-        return AddressDTO.builder()
+    private AddressResponse toResponse(Address a, Customer customer) {
+        boolean isDefault = customer.getDefaultAddress() != null
+                && customer.getDefaultAddress().getId().equals(a.getId());
+
+        return AddressResponse.builder()
+                .id(a.getId())
                 .addressLine(a.getAddress())
                 .ward(a.getWard())
                 .district(a.getDistrict())
                 .province(a.getProvince())
                 .receiverName(a.getReceiverName())
                 .receiverPhone(a.getReceiverPhone())
+                .isDefault(isDefault)
                 .build();
     }
 }

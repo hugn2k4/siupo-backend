@@ -3,6 +3,7 @@ package com.siupo.restaurant.controller;
 import com.siupo.restaurant.dto.AddressDTO;
 import com.siupo.restaurant.dto.request.ChangePasswordRequest;
 import com.siupo.restaurant.dto.request.UserRequest;
+import com.siupo.restaurant.dto.response.AddressResponse;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.UserResponse;
 import com.siupo.restaurant.model.User;
@@ -57,30 +58,29 @@ public class UserController {
     // ==================== ADDRESS ====================
 
     @GetMapping("/customer/addresses")
-    public ResponseEntity<ApiResponse<List<AddressDTO>>> getUserAddresses(@AuthenticationPrincipal User user) {
-        List<AddressDTO> addresses = addressService.getAddresses(user);
-        return ResponseEntity.ok(ApiResponse.<List<AddressDTO>>builder()
+    public ResponseEntity<ApiResponse<List<AddressResponse>>> getUserAddresses(@AuthenticationPrincipal User user) {
+        List<AddressResponse> addresses = addressService.getAddresses(user);
+        return ResponseEntity.ok(ApiResponse.<List<AddressResponse>>builder()
                 .success(true).code("200").message("User addresses retrieved successfully")
                 .data(addresses).build());
     }
-
     @PostMapping("/customer/addresses")
-    public ResponseEntity<ApiResponse<AddressDTO>> addAddress(
+    public ResponseEntity<ApiResponse<AddressResponse>> addAddress(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody AddressDTO addressDTO) {
-        AddressDTO saved = addressService.addAddress(user, addressDTO);
-        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
+        AddressResponse saved = addressService.addAddress(user, addressDTO);
+        return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
                 .success(true).code("201").message("Address added successfully")
                 .data(saved).build());
     }
 
     @PutMapping("/customer/addresses/{id}")
-    public ResponseEntity<ApiResponse<AddressDTO>> updateAddress(
+    public ResponseEntity<ApiResponse<AddressResponse>> updateAddress(
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
             @Valid @RequestBody AddressDTO addressDTO) {
-        AddressDTO updated = addressService.updateAddress(user, id, addressDTO);
-        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
+        AddressResponse updated = addressService.updateAddress(user, id, addressDTO);
+        return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
                 .success(true).code("200").message("Address updated successfully")
                 .data(updated).build());
     }
@@ -95,19 +95,19 @@ public class UserController {
     }
 
     @PatchMapping("/customer/addresses/{id}/default")
-    public ResponseEntity<ApiResponse<AddressDTO>> setDefaultAddress(
+    public ResponseEntity<ApiResponse<AddressResponse>> setDefaultAddress(
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {
-        AddressDTO dto = addressService.setDefaultAddress(user, id);
-        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
+        AddressResponse dto = addressService.setDefaultAddress(user, id);
+        return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
                 .success(true).code("200").message("Đặt làm địa chỉ mặc định")
                 .data(dto).build());
     }
 
     @GetMapping("/customer/addresses/default")
-    public ResponseEntity<ApiResponse<AddressDTO>> getDefaultAddress(@AuthenticationPrincipal User user) {
-        AddressDTO dto = addressService.getDefaultAddress(user);
-        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
+    public ResponseEntity<ApiResponse<AddressResponse>> getDefaultAddress(@AuthenticationPrincipal User user) {
+        AddressResponse dto = addressService.getDefaultAddress(user);
+        return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
                 .success(true).code("200").message("Lấy địa chỉ mặc định")
                 .data(dto).build());
     }
