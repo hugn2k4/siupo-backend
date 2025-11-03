@@ -4,6 +4,7 @@ import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.service.user.UserServiceImpl;
 import io.micrometer.common.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -63,8 +64,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String email = jwtUtils.getEmailFromToken(token);
                 User user = userService.getUserByEmail(email);
                 if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    String role = "ROLE_" + user.getClass().getSimpleName().toUpperCase();
+                    var authorities = List.of(new SimpleGrantedAuthority(role));
+
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(user, null, null);
+                            new UsernamePasswordAuthenticationToken(user, null, authorities);
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);

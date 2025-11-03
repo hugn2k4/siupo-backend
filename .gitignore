@@ -31,3 +31,27 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local Spring Boot config
+src/main/resources/application-dev.properties
+
+### Docker & Environment ###
+.env
+.env.*
+.env.local
+.env.*.local
+docker-compose.override.yml
+
+### Logs ###
+*.log
+logs/
+
+### Backup files ###
+*.sql
+*.dump
+backup*.sql
+
+### SSL Certificates (keep ca.pem for Aiven, but don't commit sensitive certs)
+# ca.pem - Aiven MySQL SSL certificate (commit this one for deployment)
+
+ca.pem

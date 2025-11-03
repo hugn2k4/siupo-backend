@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    image: siupo-restaurant:prod
+    container_name: siupo-app-prod
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - PORT=${PORT:-8080}
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
+      - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
+      - APP_DEFAULT_ADMIN_EMAIL=${APP_DEFAULT_ADMIN_EMAIL}
+      - APP_DEFAULT_ADMIN_PASSWORD=${APP_DEFAULT_ADMIN_PASSWORD}
+      - APP_DEFAULT_ADMIN_FULLNAME=${APP_DEFAULT_ADMIN_FULLNAME:-System Administrator}
+      - JAVA_OPTS=${JAVA_OPTS:--Xms512m -Xmx1024m}
+    networks:
+      - siupo-network
+    restart: unless-stopped
+
+networks:
+  siupo-network:
+    driver: bridge

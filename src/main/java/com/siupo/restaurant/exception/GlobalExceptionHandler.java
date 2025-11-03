@@ -116,5 +116,4 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleInvalidQR(InvalidQRException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
-
 }
