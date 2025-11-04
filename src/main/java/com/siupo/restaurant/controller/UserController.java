@@ -1,6 +1,7 @@
 package com.siupo.restaurant.controller;
 
 import com.siupo.restaurant.dto.AddressDTO;
+import com.siupo.restaurant.dto.request.AddressUpdateRequest;
 import com.siupo.restaurant.dto.request.ChangePasswordRequest;
 import com.siupo.restaurant.dto.request.UserRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
@@ -74,31 +75,30 @@ public class UserController {
                 .data(saved).build());
     }
 
-    @PutMapping("/customer/addresses/{id}")
+    @PutMapping("/customer/addresses")
     public ResponseEntity<ApiResponse<AddressDTO>> updateAddress(
             @AuthenticationPrincipal User user,
-            @PathVariable Long id,
-            @Valid @RequestBody AddressDTO addressDTO) {
-        AddressDTO updated = addressService.updateAddress(user, id, addressDTO);
+            @Valid @RequestBody AddressUpdateRequest request) {
+        AddressDTO updated = addressService.updateAddressByOldAndNew(user, request);
         return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
                 .success(true).code("200").message("Address updated successfully")
                 .data(updated).build());
     }
 
-    @DeleteMapping("/customer/addresses/{id}")
+    @DeleteMapping("/customer/addresses")
     public ResponseEntity<ApiResponse<Void>> deleteAddress(
             @AuthenticationPrincipal User user,
-            @PathVariable Long id) {
-        addressService.deleteAddress(user, id);
+            @Valid @RequestBody AddressDTO addressDTO) {
+        addressService.deleteAddressByContent(user, addressDTO);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true).code("200").message("Address deleted successfully").build());
     }
 
-    @PatchMapping("/customer/addresses/{id}/default")
+    @PatchMapping("/customer/addresses/default")
     public ResponseEntity<ApiResponse<AddressDTO>> setDefaultAddress(
             @AuthenticationPrincipal User user,
-            @PathVariable Long id) {
-        AddressDTO dto = addressService.setDefaultAddress(user, id);
+            @Valid @RequestBody AddressDTO addressDTO) {
+        AddressDTO dto = addressService.setDefaultAddressByContent(user, addressDTO);
         return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
                 .success(true).code("200").message("Đặt làm địa chỉ mặc định")
                 .data(dto).build());
