@@ -3,7 +3,7 @@ package com.siupo.restaurant.controller;
 import com.siupo.restaurant.dto.request.PlaceTableForGuestRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.PlaceTableForGuestResponse;
-import com.siupo.restaurant.service.PlaceTableForGuest.PlaceTableForGuestService;
+import com.siupo.restaurant.service.placetableforguest.PlaceTableForGuestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
