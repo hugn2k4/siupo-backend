@@ -1,4 +1,4 @@
-package com.siupo.restaurant.service.OrderAtTable;
+package com.siupo.restaurant.service.orderattable;
 
 import com.siupo.restaurant.dto.request.OrderAtTableRequest;
 import com.siupo.restaurant.dto.response.OrderAtTableResponse;
@@ -13,7 +13,6 @@ import com.siupo.restaurant.repository.OrderAtTableRepository;
 import com.siupo.restaurant.repository.OrderItemRepository;
 import com.siupo.restaurant.repository.ProductRepository;
 import com.siupo.restaurant.repository.TableRepository;
-import com.siupo.restaurant.service.OrderAtTable.OrderAtTableService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
