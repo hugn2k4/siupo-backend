@@ -9,8 +9,6 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-import static javax.crypto.Cipher.SECRET_KEY;
-
 @Component
 public class JwtUtils {
     @Value("${jwt.secret}")
