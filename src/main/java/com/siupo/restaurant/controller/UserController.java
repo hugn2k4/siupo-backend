@@ -1,9 +1,9 @@
 package com.siupo.restaurant.controller;
 
 import com.siupo.restaurant.dto.AddressDTO;
+import com.siupo.restaurant.dto.request.AddressUpdateRequest;
 import com.siupo.restaurant.dto.request.ChangePasswordRequest;
 import com.siupo.restaurant.dto.request.UserRequest;
-import com.siupo.restaurant.dto.response.AddressResponse;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.UserResponse;
 import com.siupo.restaurant.model.User;
@@ -58,56 +58,56 @@ public class UserController {
     // ==================== ADDRESS ====================
 
     @GetMapping("/customer/addresses")
-    public ResponseEntity<ApiResponse<List<AddressResponse>>> getUserAddresses(@AuthenticationPrincipal User user) {
-        List<AddressResponse> addresses = addressService.getAddresses(user);
-        return ResponseEntity.ok(ApiResponse.<List<AddressResponse>>builder()
+    public ResponseEntity<ApiResponse<List<AddressDTO>>> getUserAddresses(@AuthenticationPrincipal User user) {
+        List<AddressDTO> addresses = addressService.getAddresses(user);
+        return ResponseEntity.ok(ApiResponse.<List<AddressDTO>>builder()
                 .success(true).code("200").message("User addresses retrieved successfully")
                 .data(addresses).build());
     }
+
     @PostMapping("/customer/addresses")
-    public ResponseEntity<ApiResponse<AddressResponse>> addAddress(
+    public ResponseEntity<ApiResponse<AddressDTO>> addAddress(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody AddressDTO addressDTO) {
-        AddressResponse saved = addressService.addAddress(user, addressDTO);
-        return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
+        AddressDTO saved = addressService.addAddress(user, addressDTO);
+        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
                 .success(true).code("201").message("Address added successfully")
                 .data(saved).build());
     }
 
-    @PutMapping("/customer/addresses/{id}")
-    public ResponseEntity<ApiResponse<AddressResponse>> updateAddress(
+    @PutMapping("/customer/addresses")
+    public ResponseEntity<ApiResponse<AddressDTO>> updateAddress(
             @AuthenticationPrincipal User user,
-            @PathVariable Long id,
-            @Valid @RequestBody AddressDTO addressDTO) {
-        AddressResponse updated = addressService.updateAddress(user, id, addressDTO);
-        return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
+            @Valid @RequestBody AddressUpdateRequest request) {
+        AddressDTO updated = addressService.updateAddressByOldAndNew(user, request);
+        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
                 .success(true).code("200").message("Address updated successfully")
                 .data(updated).build());
     }
 
-    @DeleteMapping("/customer/addresses/{id}")
+    @DeleteMapping("/customer/addresses")
     public ResponseEntity<ApiResponse<Void>> deleteAddress(
             @AuthenticationPrincipal User user,
-            @PathVariable Long id) {
-        addressService.deleteAddress(user, id);
+            @Valid @RequestBody AddressDTO addressDTO) {
+        addressService.deleteAddressByContent(user, addressDTO);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true).code("200").message("Address deleted successfully").build());
     }
 
-    @PatchMapping("/customer/addresses/{id}/default")
-    public ResponseEntity<ApiResponse<AddressResponse>> setDefaultAddress(
+    @PatchMapping("/customer/addresses/default")
+    public ResponseEntity<ApiResponse<AddressDTO>> setDefaultAddress(
             @AuthenticationPrincipal User user,
-            @PathVariable Long id) {
-        AddressResponse dto = addressService.setDefaultAddress(user, id);
-        return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
+            @Valid @RequestBody AddressDTO addressDTO) {
+        AddressDTO dto = addressService.setDefaultAddressByContent(user, addressDTO);
+        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
                 .success(true).code("200").message("Đặt làm địa chỉ mặc định")
                 .data(dto).build());
     }
 
     @GetMapping("/customer/addresses/default")
-    public ResponseEntity<ApiResponse<AddressResponse>> getDefaultAddress(@AuthenticationPrincipal User user) {
-        AddressResponse dto = addressService.getDefaultAddress(user);
-        return ResponseEntity.ok(ApiResponse.<AddressResponse>builder()
+    public ResponseEntity<ApiResponse<AddressDTO>> getDefaultAddress(@AuthenticationPrincipal User user) {
+        AddressDTO dto = addressService.getDefaultAddress(user);
+        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
                 .success(true).code("200").message("Lấy địa chỉ mặc định")
                 .data(dto).build());
     }
