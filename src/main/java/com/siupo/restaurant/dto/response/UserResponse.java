@@ -1,4 +1,5 @@
-package com.siupo.restaurant.dto;
+package com.siupo.restaurant.dto.response;
+
 
 import com.siupo.restaurant.enums.EGender;
 import lombok.AllArgsConstructor;
@@ -12,7 +13,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserDTO {
+public class UserResponse {
     private Long id;
     private String fullName;
     private String email;
