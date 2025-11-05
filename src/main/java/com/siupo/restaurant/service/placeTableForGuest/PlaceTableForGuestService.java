@@ -1,4 +1,4 @@
-package com.siupo.restaurant.service.PlaceTableForGuest;
+package com.siupo.restaurant.service.placeTableForGuest;
 
 import com.siupo.restaurant.dto.request.PlaceTableForGuestRequest;
 import com.siupo.restaurant.dto.response.PlaceTableForGuestResponse;

@@ -29,4 +29,5 @@ public class Payment {
     private LocalDateTime paymentDate;
     private String paymentInfo;
     private String paymentMessage;
+    private String paymentMethod;
 }
