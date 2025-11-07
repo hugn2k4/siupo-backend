@@ -13,10 +13,14 @@ import java.time.LocalDateTime;
 @Builder
 public class OrderItemResponse {
     private Long id;
+    private Long itemId;
+    private Long productId;
+    private String productName;
     private Long quantity;
     private Double price;
     private String note;
     private Boolean reviewed;
     private ProductSimpleResponse product;
     private LocalDateTime createdAt;
+    private Double subtotal;
 }
