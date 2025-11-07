@@ -10,24 +10,10 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class OrderAtTableResponse {
-
     private Long orderId;
     private Long tableId;
     private String tableName;
     private List<OrderItemResponse> items;
     private Double totalAmount;
     private LocalDateTime createdAt;
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class OrderItemResponse {
-        private Long itemId;
-        private Long productId;
-        private String productName;
-        private Long quantity;
-        private Double price;
-        private Double subtotal;
-    }
 }

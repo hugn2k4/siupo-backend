@@ -7,20 +7,25 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PlaceTableForGuestResponse {
+public class PlaceTableForCustomerResponse {
+
     private Long id;
-    private String fullname;
-    private String phoneNumber;
-    private String email;
-    private Integer memberInt;
+    private Integer member;
     private EPlaceTableStatus status;
+    private String phoneNumber;
+    private Double totalPrice;
     private LocalDateTime startedAt;
-    private String note;
     private LocalDateTime createdAt;
-    private String message;
+    private LocalDateTime updatedAt;
+    private String note;
+    private UserSimpleResponse user;
+    private List<OrderItemResponse> items;
+    private PaymentResponse payment;
+    private Boolean hasPreOrder; // Có chọn món trước hay không
 }
