@@ -20,10 +20,8 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class UserController {
     private final UserService userService;
-    private final AddressService addressService;
-    public UserController(UserService userService,AddressService addressService) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.addressService = addressService;
     }
 
     @GetMapping("/customer")
@@ -53,63 +51,6 @@ public class UserController {
         userService.changePassword(user, request);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true).code("200").message("Thay đổi mật khẩu thành công").build());
-    }
-
-    // ==================== ADDRESS ====================
-
-    @GetMapping("/customer/addresses")
-    public ResponseEntity<ApiResponse<List<AddressDTO>>> getUserAddresses(@AuthenticationPrincipal User user) {
-        List<AddressDTO> addresses = addressService.getAddresses(user);
-        return ResponseEntity.ok(ApiResponse.<List<AddressDTO>>builder()
-                .success(true).code("200").message("User addresses retrieved successfully")
-                .data(addresses).build());
-    }
-
-    @PostMapping("/customer/addresses")
-    public ResponseEntity<ApiResponse<AddressDTO>> addAddress(
-            @AuthenticationPrincipal User user,
-            @Valid @RequestBody AddressDTO addressDTO) {
-        AddressDTO saved = addressService.addAddress(user, addressDTO);
-        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
-                .success(true).code("201").message("Address added successfully")
-                .data(saved).build());
-    }
-
-    @PutMapping("/customer/addresses")
-    public ResponseEntity<ApiResponse<AddressDTO>> updateAddress(
-            @AuthenticationPrincipal User user,
-            @Valid @RequestBody AddressUpdateRequest request) {
-        AddressDTO updated = addressService.updateAddressByOldAndNew(user, request);
-        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
-                .success(true).code("200").message("Address updated successfully")
-                .data(updated).build());
-    }
-
-    @DeleteMapping("/customer/addresses")
-    public ResponseEntity<ApiResponse<Void>> deleteAddress(
-            @AuthenticationPrincipal User user,
-            @Valid @RequestBody AddressDTO addressDTO) {
-        addressService.deleteAddressByContent(user, addressDTO);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .success(true).code("200").message("Address deleted successfully").build());
-    }
-
-    @PatchMapping("/customer/addresses/default")
-    public ResponseEntity<ApiResponse<AddressDTO>> setDefaultAddress(
-            @AuthenticationPrincipal User user,
-            @Valid @RequestBody AddressDTO addressDTO) {
-        AddressDTO dto = addressService.setDefaultAddressByContent(user, addressDTO);
-        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
-                .success(true).code("200").message("Đặt làm địa chỉ mặc định")
-                .data(dto).build());
-    }
-
-    @GetMapping("/customer/addresses/default")
-    public ResponseEntity<ApiResponse<AddressDTO>> getDefaultAddress(@AuthenticationPrincipal User user) {
-        AddressDTO dto = addressService.getDefaultAddress(user);
-        return ResponseEntity.ok(ApiResponse.<AddressDTO>builder()
-                .success(true).code("200").message("Lấy địa chỉ mặc định")
-                .data(dto).build());
     }
 
     // ==================== HELPER ====================

@@ -4,16 +4,17 @@ import jakarta.persistence.Embeddable;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-@Embeddable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode
 public class AddressDTO {
+    private Long id;
+
     @NotBlank(message = "Địa chỉ không được để trống")
     @Size(max = 255, message = "Địa chỉ không được vượt quá 255 ký tự")
-    private String addressLine;
+    private String address;
 
     @NotBlank(message = "Phường/Xã không được để trống")
     @Size(max = 100, message = "Phường/Xã không được vượt quá 100 ký tự")
@@ -34,4 +35,6 @@ public class AddressDTO {
     @NotBlank(message = "Số điện thoại không được để trống")
     @Pattern(regexp = "^\\d{10,11}$", message = "Số điện thoại phải có 10-11 chữ số")
     private String receiverPhone;
+
+    private Boolean isDefault;
 }
