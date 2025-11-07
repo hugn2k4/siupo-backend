@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface PlaceTableRepository extends JpaRepository<PlaceTableForCustomer, Long> {
+public interface PlaceTableForCustomerRepository extends JpaRepository<PlaceTableForCustomer, Long> {
 
     // Tìm tất cả đơn đặt bàn của user
     List<PlaceTableForCustomer> findByUserId(Long userId);

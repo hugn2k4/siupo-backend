@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PlaceTableRequest {
+public class PlaceTableForCustomerRequest {
 
     @NotBlank(message = "Họ tên không được để trống")
     private String fullname;

@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class PlaceTableForGuestResponse {
-
     private Long id;
     private String fullname;
     private String phoneNumber;

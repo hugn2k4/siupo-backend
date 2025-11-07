@@ -13,11 +13,12 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PlaceTableResponse {
+public class PlaceTableForCustomerResponse {
 
     private Long id;
     private Integer member;
     private EPlaceTableStatus status;
+    private String phoneNumber;
     private Double totalPrice;
     private LocalDateTime startedAt;
     private LocalDateTime createdAt;
