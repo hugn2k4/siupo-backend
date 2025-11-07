@@ -2,6 +2,8 @@ package com.siupo.restaurant.service.address;
 
 import com.siupo.restaurant.dto.AddressDTO;
 import com.siupo.restaurant.dto.request.AddressUpdateRequest;
+import com.siupo.restaurant.dto.response.AddressResponse;
+import com.siupo.restaurant.dto.response.MessageDataReponse;
 import com.siupo.restaurant.exception.BadRequestException;
 import com.siupo.restaurant.exception.NotFoundException;
 import com.siupo.restaurant.exception.UnauthorizedException;
@@ -16,7 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
+
+import static com.siupo.restaurant.dto.response.AddressResponse.mapAddressEntityToResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -25,15 +30,21 @@ public class AddressServiceImpl implements AddressService {
     private final AddressRepository addressRepository;
     private final UserRepository userRepository;
 
+    @Override
+    public List<AddressResponse> getAddresses(User user) {
+        return addressRepository.findByUser(user).stream()
+                .map(AddressResponse::mapAddressEntityToResponse)
+                .toList();
+    }
 
     @Override
     @Transactional
-    public AddressDTO addAddress(User user, AddressDTO dto) {
+    public AddressResponse addAddress(User user, AddressDTO dto) {
         Customer customer = getCustomer(user);
 
         Address address = Address.builder()
                 .user(user)
-                .address(dto.getAddressLine())
+                .address(dto.getAddress())
                 .ward(dto.getWard())
                 .district(dto.getDistrict())
                 .province(dto.getProvince())
@@ -43,67 +54,85 @@ public class AddressServiceImpl implements AddressService {
 
         Address saved = addressRepository.save(address);
 
-
         long addressCount = addressRepository.countByUserId(customer.getId());
-        if (addressCount == 1) { // Chỉ có 1 địa chỉ (vừa thêm)
+
+        if (addressCount == 1) {
             customer.setDefaultAddress(saved);
             userRepository.save(customer);
         }
 
-        return toDTO(saved);
+        return mapAddressEntityToResponse(saved);
     }
 
     @Override
     @Transactional
-    public AddressDTO updateAddressByContent(User user, AddressDTO dto) {
-        Address address = findAddressByContent(user, dto);
-        address.setAddress(dto.getAddressLine());
-        address.setWard(dto.getWard());
-        address.setDistrict(dto.getDistrict());
-        address.setProvince(dto.getProvince());
-        address.setReceiverName(dto.getReceiverName());
-        address.setReceiverPhone(dto.getReceiverPhone());
-        return toDTO(addressRepository.save(address));
-    }
-
-    @Override
-    @Transactional
-    public void deleteAddressByContent(User user, AddressDTO dto) {
-        Customer customer = getCustomer(user);
-        Address address = findAddressByContent(user, dto);
-
-        // Nếu là địa chỉ mặc định → không cho xóa
-        if (customer.getDefaultAddress() != null &&
-                customer.getDefaultAddress().equals(address)) { // DÙNG equals() HOẶC id
-            throw new BadRequestException("Không thể xóa địa chỉ mặc định");
+    public AddressResponse updateAddress(Long addressId, AddressDTO updateAddress) {
+        Optional<Address> address = addressRepository.findById(addressId);
+        if (address.isEmpty()) {
+            return mapAddressEntityToResponse(address.get());
         }
+        Address addr = address.get();
+        addr.setAddress(updateAddress.getAddress());
+        addr.setWard(updateAddress.getWard());
+        addr.setDistrict(updateAddress.getDistrict());
+        addr.setProvince(updateAddress.getProvince());
+        addr.setReceiverName(updateAddress.getReceiverName());
+        addr.setReceiverPhone(updateAddress.getReceiverPhone());
+        addressRepository.save(addr);
 
-        // CHỈ XÓA ADDRESS → KHÔNG SAVE CUSTOMER
-        addressRepository.delete(address);
+        return mapAddressEntityToResponse(addr);
     }
 
     @Override
     @Transactional
-    public AddressDTO setDefaultAddressByContent(User user, AddressDTO dto) {
+    public MessageDataReponse deleteAddress(User user, Long addressId) {
         Customer customer = getCustomer(user);
-        Address address = findAddressByContent(user, dto);
+        Optional<Address> address = addressRepository.findById(addressId);
+        if (address.isEmpty()) {
+            return new MessageDataReponse(false, "400", "Địa chỉ không tồn tại");
+        }
+        Address addr = address.get();
+
+        if (customer.getDefaultAddress() != null &&
+                customer.getDefaultAddress().equals(addr)) {
+            return new MessageDataReponse(false, "401", "Không thể xóa địa chỉ mặc định");
+        }
+        addressRepository.delete(addr);
+        return new MessageDataReponse(true, "200", "Xóa địa chỉ thành công");
+    }
+
+    @Override
+    public AddressResponse getAddressDefault(User user) {
+        Customer customer = getCustomer(user);
+        Address defaultAddress = customer.getDefaultAddress();
+        if(defaultAddress == null) {
+            return null;
+        }
+        return AddressResponse.builder()
+                .id(defaultAddress.getId())
+                .address(defaultAddress.getAddress())
+                .ward(defaultAddress.getWard())
+                .district(defaultAddress.getDistrict())
+                .province(defaultAddress.getProvince())
+                .receiverName(defaultAddress.getReceiverName())
+                .receiverPhone(defaultAddress.getReceiverPhone())
+                .isDefault(true)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public AddressResponse setAddressDefault(User user, Long addressId) {
+        Customer customer = getCustomer(user);
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new NotFoundException("Địa chỉ không tồn tại"));
+        if (!address.getUser().getId().equals(customer.getId())) {
+            throw new UnauthorizedException("Địa chỉ không thuộc về người dùng");
+        }
         customer.setDefaultAddress(address);
         userRepository.save(customer);
-        return toDTO(address);
-    }
 
-    @Override
-    public AddressDTO getDefaultAddress(User user) {
-        Customer customer = getCustomer(user);
-        Address def = customer.getDefaultAddress();
-        return def != null ? toDTO(def) : null;
-    }
-
-    @Override
-    public List<AddressDTO> getAddresses(User user) {
-        return addressRepository.findByUser(user).stream()
-                .map(this::toDTO)
-                .toList();
+        return mapAddressEntityToResponse(address);
     }
 
     private Customer getCustomer(User user) {
@@ -112,59 +141,4 @@ public class AddressServiceImpl implements AddressService {
         }
         return customer;
     }
-
-    private Address findAddressByContent(User user, AddressDTO dto) {
-        return addressRepository.findByUserAndAllFields(
-                        user,
-                        dto.getAddressLine(),
-                        dto.getWard(),
-                        dto.getDistrict(),
-                        dto.getProvince(),
-                        dto.getReceiverName(),
-                        dto.getReceiverPhone()
-                )
-                .orElseThrow(() -> new NotFoundException("Địa chỉ không tồn tại"));
-    }
-
-    private boolean isSameAddress(Address a1, Address a2) {
-        return a1.getAddress().equals(a2.getAddress()) &&
-                a1.getWard().equals(a2.getWard()) &&
-                a1.getDistrict().equals(a2.getDistrict()) &&
-                a1.getProvince().equals(a2.getProvince()) &&
-                a1.getReceiverName().equals(a2.getReceiverName()) &&
-                a1.getReceiverPhone().equals(a2.getReceiverPhone());
-    }
-
-    private AddressDTO toDTO(Address a) {
-        return AddressDTO.builder()
-                //.id(a.getId())
-                .addressLine(a.getAddress())
-                .ward(a.getWard())
-                .district(a.getDistrict())
-                .province(a.getProvince())
-                .receiverName(a.getReceiverName())
-                .receiverPhone(a.getReceiverPhone())
-                .build();
-    }
-    @Transactional
-    public AddressDTO updateAddressByOldAndNew(User user, AddressUpdateRequest request) {
-        Address oldAddress = findAddressByContent(user, request.getOldAddress());
-
-        // Cập nhật từng field từ newAddress (chỉ cập nhật field không null)
-        updateIfNotNull(oldAddress::setAddress, request.getNewAddress().getAddressLine());
-        updateIfNotNull(oldAddress::setWard, request.getNewAddress().getWard());
-        updateIfNotNull(oldAddress::setDistrict, request.getNewAddress().getDistrict());
-        updateIfNotNull(oldAddress::setProvince, request.getNewAddress().getProvince());
-        updateIfNotNull(oldAddress::setReceiverName, request.getNewAddress().getReceiverName());
-        updateIfNotNull(oldAddress::setReceiverPhone, request.getNewAddress().getReceiverPhone());
-
-        return toDTO(addressRepository.save(oldAddress));
-    }
-
-    private <T> void updateIfNotNull(Consumer<T> setter, T value) {
-        if (value != null && !value.toString().isBlank()) {
-            setter.accept(value);
-        }
-    }
-
 }

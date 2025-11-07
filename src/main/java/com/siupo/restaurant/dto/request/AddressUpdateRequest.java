@@ -13,10 +13,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class AddressUpdateRequest {
-    @NotNull(message = "Địa chỉ cũ không được để trống")
-    private AddressDTO oldAddress;
-
-    @NotNull(message = "Thông tin cập nhật không được để trống")
-    @Valid
-    private AddressDTO newAddress;
+    private Long addressId;
+    private AddressDTO updateAddress;
 }
