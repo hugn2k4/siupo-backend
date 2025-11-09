@@ -40,9 +40,11 @@ public class OrderItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "place_table_id")
-    private PlaceTable placeTable;
+    private PlaceTableForCustomer placeTable;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_at_table_id")
     private OrderAtTable orderAtTable;
+
+    private String note;
 }
