@@ -1,5 +1,6 @@
 package com.siupo.restaurant.dto.response;
 
+import com.siupo.restaurant.enums.EPaymentMethod;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 public class PaymentResponse {
     private Long id;
-    private String method;
+    private EPaymentMethod method;
     private String status;
     private Double amount;
     private LocalDateTime paidAt;
