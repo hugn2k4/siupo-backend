@@ -33,6 +33,6 @@ public class Customer extends User {
     private List<Address> addresses = new ArrayList<>();
 
     @OneToOne
-    @JoinColumn(name = "default_address_id")
+    @JoinColumn(name = "default_address_id", nullable = true)
     private Address defaultAddress; 
 }

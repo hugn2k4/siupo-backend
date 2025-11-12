@@ -2,7 +2,12 @@ package com.siupo.restaurant.service.product;
 
 import com.siupo.restaurant.dto.ProductDTO;
 import com.siupo.restaurant.dto.ReviewDTO;
+import com.siupo.restaurant.dto.request.ProductRequest;
+import com.siupo.restaurant.dto.response.ProductResponse;
 import com.siupo.restaurant.enums.EProductStatus;
+import com.siupo.restaurant.model.Category;
+import com.siupo.restaurant.model.ProductImage;
+import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.repository.CategoryRepository;
 import com.siupo.restaurant.exception.ResourceNotFoundException;
 import com.siupo.restaurant.model.Product;
@@ -13,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -127,9 +133,120 @@ public class ProductServiceImpl implements ProductService {
                 : productRepository.findAll(spec, pageable).map(this::toDTO);
     }
 
-        @Override
-        public Product getProductEntityById(Long id) {
-            return productRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+    @Override
+    public Product getProductEntityById(Long id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteProductById(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        product.setStatus(EProductStatus.DELETED);
+        productRepository.save(product);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public ProductDTO updateProductStatus(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        if (product.getStatus() == EProductStatus.AVAILABLE) {
+            product.setStatus(EProductStatus.UNAVAILABLE);
+        } else if (product.getStatus() == EProductStatus.UNAVAILABLE) {
+            product.setStatus(EProductStatus.AVAILABLE);
+        } else {
+            throw new IllegalStateException("Cannot change status of a deleted product");
         }
+
+        return toDTO(productRepository.save(product));
+    }
+
+    @Override
+    public ProductResponse createProduct(ProductRequest request) {
+        Product product = Product.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .status(EProductStatus.UNAVAILABLE)
+                .build();
+
+        // Nếu có Category
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            product.setCategory(category);
+        }
+
+        // Tạo ProductImages từ list URL
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            List<ProductImage> images = request.getImageUrls().stream()
+                    .map(url -> ProductImage.builder()
+                            .url(url)
+                            .name("Product Image")
+                            .product(product)
+                            .build())
+                    .collect(Collectors.toList());
+            product.setImages(images);
+        }
+
+        productRepository.save(product);
+
+        return mapToResponse(product);
+    }
+
+    @Override
+    public ProductResponse updateProduct(Long id, ProductRequest request) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+
+        // Category
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            product.setCategory(category);
+        }
+
+        // Xóa ảnh cũ và thêm ảnh mới
+        if (request.getImageUrls() != null) {
+            product.getImages().clear(); // orphanRemoval tự xóa ảnh cũ
+            List<ProductImage> newImages = request.getImageUrls().stream()
+                    .map(url -> ProductImage.builder()
+                            .url(url)
+                            .name("Product Image")
+                            .product(product)
+                            .build())
+                    .collect(Collectors.toList());
+            product.getImages().addAll(newImages);
+        }
+
+        productRepository.save(product);
+        return mapToResponse(product);
+    }
+
+    private ProductResponse mapToResponse(Product product) {
+        List<String> urls = product.getImages() == null ? List.of()
+                : product.getImages().stream().map(ProductImage::getUrl).toList();
+
+        Long categoryId = product.getCategory() != null ? product.getCategory().getId() : null;
+        String categoryName = product.getCategory() != null ? product.getCategory().getName() : null;
+
+        return ProductResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .imageUrls(urls)
+                .categoryId(categoryId)
+                .categoryName(categoryName)
+                .build();
+    }
 }
