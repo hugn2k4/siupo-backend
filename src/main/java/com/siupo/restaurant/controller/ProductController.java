@@ -1,7 +1,9 @@
 package com.siupo.restaurant.controller;
 
 import com.siupo.restaurant.dto.ProductDTO;
+import com.siupo.restaurant.dto.request.ProductRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
+import com.siupo.restaurant.dto.response.ProductResponse;
 import com.siupo.restaurant.enums.EProductStatus;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.service.product.ProductService;
@@ -71,6 +73,56 @@ public class ProductController {
                 .code("200")
                 .message(message)
                 .data(products)
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<ProductResponse>> create(@RequestBody ProductRequest request) {
+        ProductResponse productResponse = productService.createProduct(request);
+        ApiResponse<ProductResponse> response = ApiResponse.<ProductResponse>builder()
+                .success(true)
+                .code("201")
+                .data(productResponse)
+                .message("Product created successfully")
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    // Sửa sản phẩm
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<ProductResponse>> update(@PathVariable Long id, @RequestBody ProductRequest request) {
+        ProductResponse productResponse = productService.updateProduct(id, request);
+        ApiResponse<ProductResponse> response = ApiResponse.<ProductResponse>builder()
+                .success(true)
+                .code("200")
+                .data(productResponse)
+                .message("Product updated successfully")
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(
+            @PathVariable Long id) {
+        productService.deleteProductById(id);
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(true)
+                .code("200")
+                .message("Product deleted successfully")
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<ProductDTO>> updateProductStatus(
+            @PathVariable Long id) {
+        ProductDTO product = productService.updateProductStatus(id);
+        ApiResponse<ProductDTO> response = ApiResponse.<ProductDTO>builder()
+                .success(true)
+                .code("200")
+                .data(product)
+                .message("Product status updated successfully")
                 .build();
         return ResponseEntity.ok(response);
     }
