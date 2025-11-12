@@ -1,4 +1,4 @@
-package com.siupo.restaurant.service.OrderAtTable;
+package com.siupo.restaurant.service.orderAtTable;
 
 import com.siupo.restaurant.dto.request.OrderAtTableRequest;
 import com.siupo.restaurant.dto.response.OrderAtTableResponse;

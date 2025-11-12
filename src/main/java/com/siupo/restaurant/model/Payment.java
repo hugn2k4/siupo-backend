@@ -1,5 +1,6 @@
 package com.siupo.restaurant.model;
 
+import com.siupo.restaurant.enums.EPaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -29,4 +30,5 @@ public class Payment {
     private LocalDateTime paymentDate;
     private String paymentInfo;
     private String paymentMessage;
+    private EPaymentMethod paymentMethod;
 }
