@@ -2,6 +2,7 @@ package com.siupo.restaurant.dto.response;
 
 
 import com.siupo.restaurant.enums.EGender;
+import com.siupo.restaurant.enums.EUserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,4 +22,5 @@ public class UserResponse {
     private String role;
     private LocalDate dateOfBirth;
     private EGender gender;
+    private EUserStatus status;
 }
