@@ -46,9 +46,10 @@ public class MomoPaymentServiceImpl implements MomoPaymentService {
             String requestId = UUID.randomUUID().toString();
             // Thêm timestamp để tránh trùng orderId khi test nhiều lần
             String orderId = "ORDER_" + order.getId() + "_" + System.currentTimeMillis();
-            
+
+            double exchangeRate = 24000; // Tỷ giá USD to VND
+            long amountInVND = Math.round(order.getTotalPrice() * exchangeRate);
             // Tính amount (VND) - đảm bảo >= 1000 VND
-            long amountInVND = Math.round(order.getTotalPrice());
             if (amountInVND < 1000) {
                 log.warn("Order #{} amount {} VND is less than minimum 1000 VND. Using minimum amount.", order.getId(), amountInVND);
                 amountInVND = 1000; // Set minimum amount cho test
