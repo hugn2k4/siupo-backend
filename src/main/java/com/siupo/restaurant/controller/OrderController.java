@@ -4,11 +4,16 @@ import com.siupo.restaurant.dto.OrderDTO;
 import com.siupo.restaurant.dto.request.CreateOrderRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.CreateOrderResponse;
+import com.siupo.restaurant.enums.EOrderStatus;
 import com.siupo.restaurant.model.Customer;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.service.order.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -91,6 +96,76 @@ public class OrderController {
 						.success(true)
 						.message("Hủy đơn hàng thành công")
 						.data(response)
+						.build()
+		);
+	}
+
+	// ============== ADMIN ENDPOINTS ==============
+
+	@GetMapping("/admin")
+	public ResponseEntity<ApiResponse<Page<OrderDTO>>> getAllOrders(
+			@RequestParam(required = false) EOrderStatus status,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size,
+			@RequestParam(defaultValue = "createdAt,desc") String[] sort) {
+
+		Pageable pageable = PageRequest.of(page, size, Sort.by(
+				sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC,
+				sort[0]
+		));
+
+		Page<OrderDTO> orders = orderService.getAllOrders(pageable, status);
+
+		return ResponseEntity.ok(
+				ApiResponse.<Page<OrderDTO>>builder()
+						.code("200")
+						.success(true)
+						.message("Lấy danh sách đơn hàng thành công")
+						.data(orders)
+						.build()
+		);
+	}
+
+	@GetMapping("/admin/{id}")
+	public ResponseEntity<ApiResponse<OrderDTO>> getOrderDetailById(@PathVariable Long id) {
+		OrderDTO order = orderService.getOrderDetailById(id);
+
+		return ResponseEntity.ok(
+				ApiResponse.<OrderDTO>builder()
+						.code("200")
+						.success(true)
+						.message("Lấy chi tiết đơn hàng thành công")
+						.data(order)
+						.build()
+		);
+	}
+
+	@PatchMapping("/admin/{id}/status")
+	public ResponseEntity<ApiResponse<OrderDTO>> updateOrderStatus(
+			@PathVariable Long id,
+			@RequestParam EOrderStatus status) {
+
+		OrderDTO order = orderService.updateOrderStatus(id, status);
+
+		return ResponseEntity.ok(
+				ApiResponse.<OrderDTO>builder()
+						.code("200")
+						.success(true)
+						.message("Cập nhật trạng thái đơn hàng thành công")
+						.data(order)
+						.build()
+		);
+	}
+
+	@DeleteMapping("/admin/{id}")
+	public ResponseEntity<ApiResponse<Void>> deleteOrder(@PathVariable Long id) {
+		orderService.deleteOrder(id);
+
+		return ResponseEntity.ok(
+				ApiResponse.<Void>builder()
+						.code("200")
+						.success(true)
+						.message("Xóa đơn hàng thành công")
 						.build()
 		);
 	}
