@@ -13,5 +13,5 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class Banner extends Image {
 
-    private Integer position;
+    private String position;
 }
