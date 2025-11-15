@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +26,10 @@ public class OrderDTO {
     private EPaymentMethod paymentMethod;
     private List<OrderItemDTO> items;
 
+    private String userName;
+    private Long userId;
+    private LocalDateTime createdAt;
+
     public static OrderDTO toDTO(Order order) {
         List<OrderItemDTO> itemDTOs = order.getItems().stream()
                 .map(OrderItemDTO::toDTO)
@@ -36,8 +41,16 @@ public class OrderDTO {
                 .totalPrice(order.getTotalPrice())
                 .shippingFee(order.getShippingFee())
                 .vat(order.getVat())
-                .paymentMethod(order.getPayment() != null ? order.getPayment().getPaymentMethod() : null)
+                .paymentMethod(order.getPayment() != null
+                        ? order.getPayment().getPaymentMethod()
+                        : null)
                 .items(itemDTOs)
+
+                // 👉 Thêm các trường mới tại đây
+                .userId(order.getUser() != null ? order.getUser().getId() : null)
+                .userName(order.getUser() != null ? order.getUser().getFullName() : null)
+                .createdAt(order.getCreatedAt())
+
                 .build();
     }
 }

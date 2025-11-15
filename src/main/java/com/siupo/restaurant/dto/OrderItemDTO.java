@@ -22,10 +22,19 @@ public class OrderItemDTO {
     private String note;
     private Boolean reviewed;
 
+    private String productCategoryName;
+
     public static OrderItemDTO toDTO(OrderItem item) {
         String productImageUrl = null;
-        if (item.getProduct() != null && item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
-            productImageUrl = item.getProduct().getImages().get(0).getUrl();
+        String categoryName = null;
+
+        if (item.getProduct() != null) {
+            if (item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
+                productImageUrl = item.getProduct().getImages().get(0).getUrl();
+            }
+            if (item.getProduct().getCategory() != null) {
+                categoryName = item.getProduct().getCategory().getName();
+            }
         }
 
         return OrderItemDTO.builder()
@@ -39,6 +48,7 @@ public class OrderItemDTO {
                 .subTotal(item.getPrice() != null && item.getQuantity() != null
                         ? item.getPrice() * item.getQuantity() : null)
                 .productImageUrl(productImageUrl)
+                .productCategoryName(categoryName)
                 .build();
     }
 

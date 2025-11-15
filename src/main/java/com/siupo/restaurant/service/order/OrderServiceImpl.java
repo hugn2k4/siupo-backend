@@ -15,6 +15,8 @@ import com.siupo.restaurant.repository.*;
 import com.siupo.restaurant.service.payment.MomoPaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -232,5 +234,71 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
 
         return OrderDTO.toDTO(order);
+    }
+
+    // ============== ADMIN METHODS ==============
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderDTO> getAllOrders(Pageable pageable, EOrderStatus status) {
+        Page<Order> orders;
+        if (status != null) {
+            orders = orderRepository.findByStatus(status, pageable);
+        } else {
+            orders = orderRepository.findAll(pageable);
+        }
+        return orders.map(OrderDTO::toDTO);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrderDTO getOrderDetailById(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+        return OrderDTO.toDTO(order);
+    }
+
+    @Override
+    @Transactional
+    public OrderDTO updateOrderStatus(Long id, EOrderStatus newStatus) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+
+        // Validate status transition
+        if (!isValidStatusTransition(order.getStatus(), newStatus)) {
+            throw new BadRequestException("Không thể chuyển trạng thái từ " + order.getStatus() + " sang " + newStatus);
+        }
+
+        order.setStatus(newStatus);
+        orderRepository.save(order);
+
+        return OrderDTO.toDTO(order);
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteOrder(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+
+        // Only allow deletion of canceled orders
+        if (order.getStatus() != EOrderStatus.CANCELED) {
+            throw new BadRequestException("Chỉ có thể xóa đơn hàng đã bị hủy");
+        }
+
+        orderRepository.delete(order);
+        return true;
+    }
+
+    private boolean isValidStatusTransition(EOrderStatus currentStatus, EOrderStatus newStatus) {
+        // Define valid status transitions
+        return switch (currentStatus) {
+            case WAITING_FOR_PAYMENT -> newStatus == EOrderStatus.PENDING || newStatus == EOrderStatus.CANCELED;
+            case PENDING -> newStatus == EOrderStatus.CONFIRMED || newStatus == EOrderStatus.CANCELED;
+            case CONFIRMED -> newStatus == EOrderStatus.SHIPPING || newStatus == EOrderStatus.CANCELED;
+            case SHIPPING -> newStatus == EOrderStatus.DELIVERED || newStatus == EOrderStatus.CANCELED;
+            case DELIVERED -> newStatus == EOrderStatus.COMPLETED;
+            case COMPLETED, CANCELED -> false; // Terminal states
+        };
     }
 }
