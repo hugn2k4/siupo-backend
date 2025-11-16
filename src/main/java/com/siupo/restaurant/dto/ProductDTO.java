@@ -25,6 +25,8 @@ public class ProductDTO {
     private List<ImageDTO> images;
     private List<String> imageUrls;
     private List<ReviewDTO> reviews;
+    private Double rating;
+    private Integer reviewCount;
     private EProductStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -57,6 +59,13 @@ public class ProductDTO {
                             return dto;
                         })
                         .toList() : null)
+                .rating(product.getReviews() != null && !product.getReviews().isEmpty() 
+                        ? product.getReviews().stream()
+                                .mapToDouble(review -> review.getRate() != null ? review.getRate() : 0.0)
+                                .average()
+                                .orElse(0.0)
+                        : 0.0)
+                .reviewCount(product.getReviews() != null ? product.getReviews().size() : 0)
                 .status(product.getStatus())
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())

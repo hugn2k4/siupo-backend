@@ -4,9 +4,11 @@ import com.siupo.restaurant.dto.ProductDTO;
 import com.siupo.restaurant.dto.request.ProductRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.ProductResponse;
+import com.siupo.restaurant.dto.response.ReviewResponse;
 import com.siupo.restaurant.enums.EProductStatus;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.service.product.ProductService;
+import com.siupo.restaurant.service.review.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,9 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private ReviewService reviewService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<ProductDTO>>> getAllProducts(
@@ -123,6 +128,19 @@ public class ProductController {
                 .code("200")
                 .data(product)
                 .message("Product status updated successfully")
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/reviews")
+    public ResponseEntity<ApiResponse<List<ReviewResponse>>> getProductReviews(
+            @PathVariable Long id) {
+        List<ReviewResponse> reviews = reviewService.getReviewsByProductId(id);
+        ApiResponse<List<ReviewResponse>> response = ApiResponse.<List<ReviewResponse>>builder()
+                .success(true)
+                .code("200")
+                .message("Reviews retrieved successfully")
+                .data(reviews)
                 .build();
         return ResponseEntity.ok(response);
     }
