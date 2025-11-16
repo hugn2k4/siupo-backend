@@ -1,10 +1,10 @@
 package com.siupo.restaurant.service.order;
 
 import com.siupo.restaurant.dto.CartItemDTO;
+import com.siupo.restaurant.dto.OrderDTO;
+import com.siupo.restaurant.dto.OrderItemDTO;
 import com.siupo.restaurant.dto.request.CreateOrderRequest;
-import com.siupo.restaurant.dto.response.CreateOrderResponse;
-import com.siupo.restaurant.dto.response.MomoPaymentResponse;
-import com.siupo.restaurant.dto.response.OrderItemResponse;
+import com.siupo.restaurant.dto.response.*;
 import com.siupo.restaurant.enums.EOrderStatus;
 import com.siupo.restaurant.enums.EPaymentMethod;
 import com.siupo.restaurant.enums.EPaymentStatus;
@@ -15,6 +15,8 @@ import com.siupo.restaurant.repository.*;
 import com.siupo.restaurant.service.payment.MomoPaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,12 +46,11 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("Giỏ hàng trống");
         }
 
-        // Validate request items hợp lệ
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new BadRequestException("Danh sách sản phẩm đặt hàng không được để trống");
         }
 
-        // Kiểm tra sản phẩm trong request có trong cart
+        // Kiểm tra sản phẩm request có trong cart
         for (CartItemDTO item : request.getItems()) {
             CartItem ci = cartItems.stream()
                     .filter(c -> c.getProduct().getId().equals(item.getProduct().getId()))
@@ -109,7 +110,6 @@ public class OrderServiceImpl implements OrderService {
         // Xử lý thanh toán
         Payment payment = handlePayment(order, total, request.getPaymentMethod());
         order.setPayment(payment);
-
         orderRepository.save(order);
 
         // Xóa sản phẩm trong cart
@@ -119,7 +119,7 @@ public class OrderServiceImpl implements OrderService {
         cartItemRepository.deleteByCartAndProductIdIn(cart, productIds);
 
         // Trả response
-        return buildCreateOrderResponse(order, orderItems,request);
+        return buildCreateOrderResponse(order, request);
     }
 
     private Payment handlePayment(Order order, double total, EPaymentMethod method) {
@@ -132,7 +132,7 @@ public class OrderServiceImpl implements OrderService {
                     .paymentMethod(EPaymentMethod.COD)
                     .note("Thanh toán khi nhận hàng")
                     .build();
-            order.setStatus(EOrderStatus.CONFIRMED);
+            order.setStatus(EOrderStatus.PENDING);
             return paymentRepository.save(payment);
         } else if (method == EPaymentMethod.MOMO) {
             MomoPayment momo = MomoPayment.builder()
@@ -140,53 +140,42 @@ public class OrderServiceImpl implements OrderService {
                     .status(EPaymentStatus.PROCESSING)
                     .paymentMethod(EPaymentMethod.MOMO)
                     .build();
-            order.setStatus(EOrderStatus.WAITING_FOR_PAYMENT);
+            order.setStatus(EOrderStatus.PENDING);
             return paymentRepository.save(momo);
         }
 
         throw new BadRequestException("Phương thức thanh toán không hợp lệ");
     }
 
-    private CreateOrderResponse buildCreateOrderResponse(Order order, List<OrderItem> items, CreateOrderRequest request) {
-        List<OrderItemResponse> itemResponses = items.stream()
-                .map(oi -> OrderItemResponse.builder()
-                        .itemId(oi.getId())
-                        .productId(oi.getProduct().getId())
-                        .productName(oi.getProduct().getName())
-                        .quantity(oi.getQuantity())
-                        .price(oi.getPrice())
-                        .subtotal(oi.getPrice() * oi.getQuantity())
-                        .build())
-                .toList();
+    private CreateOrderResponse buildCreateOrderResponse(Order order, CreateOrderRequest request) {
 
         CreateOrderResponse.CreateOrderResponseBuilder responseBuilder = CreateOrderResponse.builder()
                 .orderId(order.getId())
                 .status(order.getStatus())
-                .vat(order.getVat())
-                .shippingFee(order.getShippingFee())
                 .totalPrice(order.getTotalPrice())
+                .shippingFee(order.getShippingFee())
+                .vat(order.getVat())
                 .paymentMethod(order.getPayment().getPaymentMethod())
-                .items(itemResponses);
+                .items(order.getItems()
+                        .stream()
+                        .map(OrderItemDTO::toDTO)
+                        .toList()
+                );
 
-        // Nếu thanh toán MoMo, gọi API MoMo và thêm payUrl
-        if (order.getPayment().getPaymentMethod() == EPaymentMethod.MOMO) {
+        if (order.getPayment() != null && order.getPayment().getPaymentMethod() == EPaymentMethod.MOMO) {
             try {
                 MomoPaymentResponse momoResponse = momoPaymentService.createPayment(order);
                 responseBuilder.payUrl(momoResponse.getPayUrl())
                         .qrCodeUrl(momoResponse.getQrCodeUrl())
                         .deeplink(momoResponse.getDeeplink());
             } catch (Exception e) {
-                // Log lỗi chi tiết khi gọi MoMo thất bại
-                log.error("Failed to create MoMo payment URL for Order #{}: {}", order.getId(), e.getMessage(), e);
-                // Vẫn trả về response nhưng không có payUrl
-                responseBuilder.payUrl(null)
-                        .qrCodeUrl(null)
-                        .deeplink(null);
+                log.error("Failed to create MoMo payment URL for Order #{}: {}", order.getId(), e.getMessage());
             }
         }
 
         return responseBuilder.build();
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -194,11 +183,122 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
 
-        if (order.getUser() != null && !order.getUser().getId().equals(user.getId())) {
+        if (!order.getUser().getId().equals(user.getId())) {
             throw new BadRequestException("Bạn không có quyền xem đơn hàng này");
         }
 
-        List<OrderItem> items = order.getItems();
-        return buildCreateOrderResponse(order, items, null);
+        return buildCreateOrderResponse(order, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderDTO> getOrdersByUser(User user) {
+        List<Order> orders = orderRepository.findByUserOrderByCreatedAtDesc(user);
+        return orders.stream()
+                .map(OrderDTO::toDTO)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public OrderDTO cancelOrderByCustomer(Long id, User user) {
+
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
+
+        // Check quyền sở hữu đơn
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new BadRequestException("Bạn không có quyền hủy đơn hàng này");
+        }
+
+        // Check trạng thái cho phép hủy
+        if (!(order.getStatus() == EOrderStatus.PENDING ||
+                order.getStatus() == EOrderStatus.CONFIRMED ||
+                order.getStatus() == EOrderStatus.WAITING_FOR_PAYMENT)) {
+            throw new BadRequestException("Đơn hàng không thể hủy ở trạng thái hiện tại");
+        }
+
+        // Xử lý thanh toán nếu là Momo
+        if (order.getPayment().getPaymentMethod() == EPaymentMethod.MOMO) {
+
+            if (order.getPayment().getStatus() == EPaymentStatus.PAID) {
+                // TODO: Gọi API Momo refund nếu muốn
+                order.getPayment().setStatus(EPaymentStatus.REFUND);
+            } else {
+                order.getPayment().setStatus(EPaymentStatus.CANCELED);
+            }
+        }
+
+        // Cập nhật trạng thái đơn hàng
+        order.setStatus(EOrderStatus.CANCELED);
+        orderRepository.save(order);
+
+        return OrderDTO.toDTO(order);
+    }
+
+    // ============== ADMIN METHODS ==============
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderDTO> getAllOrders(Pageable pageable, EOrderStatus status) {
+        Page<Order> orders;
+        if (status != null) {
+            orders = orderRepository.findByStatus(status, pageable);
+        } else {
+            orders = orderRepository.findAll(pageable);
+        }
+        return orders.map(OrderDTO::toDTO);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrderDTO getOrderDetailById(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+        return OrderDTO.toDTO(order);
+    }
+
+    @Override
+    @Transactional
+    public OrderDTO updateOrderStatus(Long id, EOrderStatus newStatus) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+
+        // Validate status transition
+        if (!isValidStatusTransition(order.getStatus(), newStatus)) {
+            throw new BadRequestException("Không thể chuyển trạng thái từ " + order.getStatus() + " sang " + newStatus);
+        }
+
+        order.setStatus(newStatus);
+        orderRepository.save(order);
+
+        return OrderDTO.toDTO(order);
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteOrder(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+
+        // Only allow deletion of canceled orders
+        if (order.getStatus() != EOrderStatus.CANCELED) {
+            throw new BadRequestException("Chỉ có thể xóa đơn hàng đã bị hủy");
+        }
+
+        orderRepository.delete(order);
+        return true;
+    }
+
+    private boolean isValidStatusTransition(EOrderStatus currentStatus, EOrderStatus newStatus) {
+        // Define valid status transitions
+        return switch (currentStatus) {
+            case WAITING_FOR_PAYMENT -> newStatus == EOrderStatus.PENDING || newStatus == EOrderStatus.CANCELED;
+            case PENDING -> newStatus == EOrderStatus.CONFIRMED || newStatus == EOrderStatus.CANCELED;
+            case CONFIRMED -> newStatus == EOrderStatus.SHIPPING || newStatus == EOrderStatus.CANCELED;
+            case SHIPPING -> newStatus == EOrderStatus.DELIVERED || newStatus == EOrderStatus.CANCELED;
+            case DELIVERED -> newStatus == EOrderStatus.COMPLETED;
+            case COMPLETED, CANCELED -> false; // Terminal states
+        };
     }
 }

@@ -3,14 +3,17 @@ package com.siupo.restaurant.controller;
 import com.siupo.restaurant.dto.AddressDTO;
 import com.siupo.restaurant.dto.request.AddressUpdateRequest;
 import com.siupo.restaurant.dto.request.ChangePasswordRequest;
+import com.siupo.restaurant.dto.request.UpdateCustomerStatusRequest;
 import com.siupo.restaurant.dto.request.UserRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.UserResponse;
+import com.siupo.restaurant.model.Customer;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.service.address.AddressService;
 import com.siupo.restaurant.service.user.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -64,6 +67,37 @@ public class UserController {
                 .role("CUSTOMER")
                 .dateOfBirth(user.getDateOfBirth())
                 .gender(user.getGender())
+                .status(user.getStatus())
                 .build();
+    }
+
+    @GetMapping("/customers")
+    @PreAuthorize("hasRole('ADMIN')") // Chỉ admin được xem
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllCustomers(@AuthenticationPrincipal User currentUser) {
+        List<User> customers = userService.getAllCustomers();
+        List<UserResponse> responses = customers.stream()
+                .map(this::mapToUserResponse)
+                .toList();
+
+        return ResponseEntity.ok(ApiResponse.<List<UserResponse>>builder()
+                .success(true)
+                .code("200")
+                .message("Lấy danh sách khách hàng thành công")
+                .data(responses)
+                .build());
+    }
+    @PutMapping("/customers/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> updateCustomerStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateCustomerStatusRequest request) {
+
+        userService.updateCustomerStatus(id, request.getStatus());
+
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .code("200")
+                .message("Cập nhật trạng thái khách hàng thành công")
+                .build());
     }
 }

@@ -3,6 +3,7 @@ package com.siupo.restaurant.service.user;
 import com.siupo.restaurant.dto.AddressDTO;
 import com.siupo.restaurant.dto.request.ChangePasswordRequest;
 import com.siupo.restaurant.dto.request.UserRequest;
+import com.siupo.restaurant.enums.EUserStatus;
 import com.siupo.restaurant.exception.BadRequestException;
 import com.siupo.restaurant.exception.NotFoundException;
 import com.siupo.restaurant.exception.UnauthorizedException;
@@ -10,6 +11,7 @@ import com.siupo.restaurant.model.Address;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.repository.AddressRepository;
 import com.siupo.restaurant.repository.UserRepository;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -66,4 +68,23 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
+    @Override
+    public List<User> getAllCustomers() {
+        return userRepository.findAll().stream()
+                .filter(user -> "CUSTOMER".equals(user.getClass().getAnnotation(DiscriminatorValue.class).value()))
+                .collect(Collectors.toList());
+    }
+    @Override
+    @Transactional
+    public void updateCustomerStatus(Long customerId, EUserStatus status) {
+        User user = userRepository.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy khách hàng với ID: " + customerId));
+        if (!"CUSTOMER".equals(user.getClass().getAnnotation(DiscriminatorValue.class).value())) {
+            throw new BadRequestException("Chỉ có thể cập nhật trạng thái của CUSTOMER");
+        }
+
+        user.setStatus(status);
+        userRepository.save(user);
+    }
+
 }
