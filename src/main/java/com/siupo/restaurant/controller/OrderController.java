@@ -4,10 +4,12 @@ import com.siupo.restaurant.dto.OrderDTO;
 import com.siupo.restaurant.dto.request.CreateOrderRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.CreateOrderResponse;
+import com.siupo.restaurant.dto.response.OrderReviewsResponse;
 import com.siupo.restaurant.enums.EOrderStatus;
 import com.siupo.restaurant.model.Customer;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.service.order.OrderService;
+import com.siupo.restaurant.service.review.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ import java.util.List;
 public class OrderController {
 
 	private final OrderService orderService;
+	private final ReviewService reviewService;
 
 	@PostMapping
 	public ResponseEntity<ApiResponse<CreateOrderResponse>> createOrder(
@@ -95,6 +98,23 @@ public class OrderController {
 						.code("200")
 						.success(true)
 						.message("Hủy đơn hàng thành công")
+						.data(response)
+						.build()
+		);
+	}
+
+	@GetMapping("/{id}/reviews")
+	public ResponseEntity<ApiResponse<OrderReviewsResponse>> getOrderReviews(
+			@AuthenticationPrincipal User user,
+			@PathVariable Long id) {
+
+		OrderReviewsResponse response = reviewService.getReviewsByOrderId(id, user);
+
+		return ResponseEntity.ok(
+				ApiResponse.<OrderReviewsResponse>builder()
+						.code("200")
+						.success(true)
+						.message("Reviews retrieved successfully")
 						.data(response)
 						.build()
 		);
