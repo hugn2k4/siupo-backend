@@ -19,4 +19,5 @@ public class NotificationResponse {
     private String content;
     private ENotificationStatus status;
     private Long userId;
+    private Boolean isGlobal;
 }

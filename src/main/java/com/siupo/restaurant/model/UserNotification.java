@@ -28,6 +28,10 @@ public class UserNotification {
     private ENotificationStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean isGlobal = false; // TRUE = notification chung cho tất cả
 }
