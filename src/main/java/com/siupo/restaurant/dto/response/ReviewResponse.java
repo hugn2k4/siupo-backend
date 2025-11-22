@@ -1,5 +1,6 @@
 package com.siupo.restaurant.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,7 @@ public class ReviewResponse {
     private Long orderItemId;
     private Long productId;
     private String productName;
+    @JsonProperty("rating")
     private Double rating;
     private String content;
     private List<String> imageUrls;
