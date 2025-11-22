@@ -39,7 +39,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/products/**").permitAll()
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/place-table-for-guest/**").permitAll()
-
+                        .requestMatchers("/api/banners/**").permitAll()
                         // Roles based access control
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 

@@ -6,6 +6,7 @@ import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.ProductResponse;
 import com.siupo.restaurant.dto.response.ReviewResponse;
 import com.siupo.restaurant.enums.EProductStatus;
+import com.siupo.restaurant.model.Product;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.service.product.ProductService;
 import com.siupo.restaurant.service.review.ReviewService;
@@ -31,25 +32,35 @@ public class ProductController {
     public ResponseEntity<ApiResponse<Page<ProductDTO>>> getAllProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "15") int size,
-            @RequestParam(defaultValue = "id") String sortBy) {
-        Page<ProductDTO> products = productService.getAllProducts(page, size, sortBy);
+            @RequestParam(defaultValue = "id") String sortBy,
+            @AuthenticationPrincipal User user) {
+        System.out.println("User in getAllProducts: " + user);
+
+        Page<ProductDTO> productsPage = productService.getAllProductsWithWishlist(user, page, size, sortBy);
+
         ApiResponse<Page<ProductDTO>> response = ApiResponse.<Page<ProductDTO>>builder()
                 .success(true)
                 .code("200")
                 .message("Products retrieved successfully")
-                .data(products)
+                .data(productsPage)
                 .build();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ProductDTO>> getProductById(@PathVariable Long id) {
-        ProductDTO product = productService.getProductById(id);
+    public ResponseEntity<ApiResponse<ProductDTO>> getProductById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        Long userId = user != null ? user.getId() : null;
+        Product product = productService.getProductEntityById(id);
+        ProductDTO productDTO = productService.toDTOWithWishlist(product, userId);
+
         ApiResponse<ProductDTO> response = ApiResponse.<ProductDTO>builder()
                 .success(true)
                 .code("200")
                 .message("Product retrieved successfully")
-                .data(product)
+                .data(productDTO)
                 .build();
         return ResponseEntity.ok(response);
     }

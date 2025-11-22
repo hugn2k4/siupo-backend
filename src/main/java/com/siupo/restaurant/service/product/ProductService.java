@@ -19,5 +19,6 @@ public interface ProductService {
     ProductResponse updateProduct(Long id, ProductRequest productRequest);
     void deleteProductById(Long id);
     ProductDTO updateProductStatus(Long id);
-
+    ProductDTO toDTOWithWishlist(Product product, Long userId);
+    Page<ProductDTO> getAllProductsWithWishlist(User user, int page, int size, String sortBy);
 }

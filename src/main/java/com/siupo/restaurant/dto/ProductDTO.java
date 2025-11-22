@@ -30,7 +30,7 @@ public class ProductDTO {
     private EProductStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
+    private boolean isWishlist;
     public ProductDTO toDTO(Product product) {
         if (product == null) return null;
 
