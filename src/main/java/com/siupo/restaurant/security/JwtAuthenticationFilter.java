@@ -40,7 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/products",
             "/api/products/search",
             "/error",
-            "/api/place-table-for-guest/place-table"
+            "/api/place-table-for-guest/place-table",
+            "/oauth2/authorization/google"
     );
 
 
@@ -52,7 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         boolean isPublic = WHITELIST.stream().anyMatch(path::equals);
 
+        if (isPublic) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
+
         if (authHeader != null && authHeader.toLowerCase().startsWith("bearer ")) {
             String token = authHeader.substring(7);
             if (jwtUtils.validateToken(token)) {
