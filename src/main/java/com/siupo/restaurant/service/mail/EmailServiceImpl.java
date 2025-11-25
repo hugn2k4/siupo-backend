@@ -1,11 +1,13 @@
 package com.siupo.restaurant.service.mail;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
+@Slf4j
 @Service
 public class EmailServiceImpl implements EmailService {
 
@@ -17,20 +19,27 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public boolean sendOTPToEmail(String toEmail, String otp) throws MessagingException {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        try {
+            log.info("🔄 Preparing to send OTP email to: {}", toEmail);
+            
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        helper.setTo(toEmail);
-        helper.setSubject("Xác nhận tài khoản của bạn");
+            helper.setTo(toEmail);
+            helper.setSubject("Xác nhận tài khoản của bạn");
 
-        // Nếu dùng template engine Thymeleaf thì thay "${otp}" bằng biến thật
-        String htmlContent = getHtmlContent(otp);
+            String htmlContent = getHtmlContent(otp);
+            helper.setText(htmlContent, true);
 
-        helper.setText(htmlContent, true);
+            log.info("📧 Sending OTP email to: {}", toEmail);
+            mailSender.send(message);
+            log.info("✅ OTP email sent successfully to: {}", toEmail);
 
-        mailSender.send(message);
-
-        return true;
+            return true;
+        } catch (MessagingException e) {
+            log.error("❌ Failed to send OTP email to: {}. Error: {}", toEmail, e.getMessage(), e);
+            throw e;
+        }
     }
 
     private String getHtmlContent(String otp) {
