@@ -2,17 +2,24 @@ package com.siupo.restaurant.service.product;
 
 import com.siupo.restaurant.dto.ProductDTO;
 import com.siupo.restaurant.dto.ReviewDTO;
+import com.siupo.restaurant.dto.request.ProductRequest;
+import com.siupo.restaurant.dto.response.ProductResponse;
 import com.siupo.restaurant.enums.EProductStatus;
+import com.siupo.restaurant.model.Category;
+import com.siupo.restaurant.model.ProductImage;
+import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.repository.CategoryRepository;
 import com.siupo.restaurant.exception.ResourceNotFoundException;
 import com.siupo.restaurant.model.Product;
 import com.siupo.restaurant.repository.ProductRepository;
+import com.siupo.restaurant.service.wishlist.WishlistService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,6 +34,44 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private CategoryRepository categoryRepository;
 
+    @Autowired
+    private WishlistService wishlistService;
+
+    // ----------------------- CREATE PAGEABLE -----------------------
+    private Pageable createPageable(int page, int size, String sortBy) {
+        Sort sort;
+        if (sortBy != null && sortBy.contains(",")) {
+            String[] parts = sortBy.split(",");
+            String field = parts[0].trim();
+            String direction = parts.length > 1 ? parts[1].trim() : "asc";
+            sort = Sort.by(Sort.Direction.fromString(direction), field);
+        } else {
+            String field = sortBy != null ? sortBy.trim() : "id";
+            sort = Sort.by(Sort.Direction.ASC, field);
+        }
+        return PageRequest.of(page, size, sort);
+    }
+
+    // ----------------------- GET ALL WITH WISHLIST -----------------------
+    public Page<ProductDTO> getAllProductsWithWishlist(User user, int page, int size, String sortBy) {
+        Pageable pageable = createPageable(page, size, sortBy);
+        Page<Product> products = productRepository.findAll(pageable);
+
+        Long userId = user != null ? user.getId() : null;
+        return products.map(product -> toDTOWithWishlist(product, userId));
+    }
+
+    public ProductDTO toDTOWithWishlist(Product product, Long userId) {
+        ProductDTO dto = toDTO(product);
+        if (userId != null) {
+            boolean isInWishlist = wishlistService.isProductInWishlist(userId, product.getId());
+            dto.setWishlist(isInWishlist);
+        } else {
+            dto.setWishlist(false);
+        }
+        return dto;
+    }
+
     private ProductDTO toDTO(Product product) {
         ProductDTO dto = new ProductDTO();
         dto.setId(product.getId());
@@ -38,7 +83,7 @@ public class ProductServiceImpl implements ProductService {
             dto.setCategoryName(product.getCategory().getName());
         }
         dto.setImageUrls(product.getImages().stream()
-                .map(img -> img.getUrl())
+                .map(ProductImage::getUrl)
                 .collect(Collectors.toList()));
         dto.setReviews(product.getReviews().stream().map(review -> {
             ReviewDTO reviewDTO = new ReviewDTO();
@@ -60,18 +105,10 @@ public class ProductServiceImpl implements ProductService {
         return dto;
     }
 
+    // ----------------------- BASIC GET -----------------------
     @Override
     public Page<ProductDTO> getAllProducts(int page, int size, String sortBy) {
-        Sort sort;
-        if (sortBy != null && sortBy.contains(",")) {
-            String[] sortParts = sortBy.split(",");
-            String field = sortParts[0];
-            String direction = sortParts[1];
-            sort = Sort.by(Sort.Direction.fromString(direction), field);
-        } else {
-            sort = Sort.by(Sort.Direction.ASC, sortBy != null ? sortBy : "id"); // Mặc định id,asc
-        }
-        Pageable pageable = PageRequest.of(page, size, sort);
+        Pageable pageable = createPageable(page, size, sortBy);
         return productRepository.findAll(pageable).map(this::toDTO);
     }
 
@@ -81,9 +118,12 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         return toDTO(product);
     }
+
+    // ----------------------- SEARCH AND FILTER -----------------------
     @Override
-    public Page<ProductDTO> searchAndFilterProducts(String name, List<Long> categoryIds, Double minPrice, Double maxPrice, int page, int size, String sortBy) {
-        // Kiểm tra categoryIds
+    public Page<ProductDTO> searchAndFilterProducts(String name, List<Long> categoryIds,
+                                                    Double minPrice, Double maxPrice,
+                                                    int page, int size, String sortBy) {
         if (categoryIds != null && !categoryIds.isEmpty()) {
             for (Long categoryId : categoryIds) {
                 if (!categoryRepository.existsById(categoryId)) {
@@ -92,9 +132,7 @@ public class ProductServiceImpl implements ProductService {
             }
         }
 
-        // Khởi tạo Specification mà không dùng where(null)
         Specification<Product> spec = null;
-
         if (name != null && !name.isEmpty()) {
             spec = (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%");
         }
@@ -103,33 +141,127 @@ public class ProductServiceImpl implements ProductService {
             spec = spec == null ? categorySpec : spec.and(categorySpec);
         }
         if (minPrice != null) {
-            Specification<Product> minPriceSpec = (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("price"), minPrice);
-            spec = spec == null ? minPriceSpec : spec.and(minPriceSpec);
+            Specification<Product> minSpec = (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("price"), minPrice);
+            spec = spec == null ? minSpec : spec.and(minSpec);
         }
         if (maxPrice != null) {
-            Specification<Product> maxPriceSpec = (root, query, cb) -> cb.lessThanOrEqualTo(root.get("price"), maxPrice);
-            spec = spec == null ? maxPriceSpec : spec.and(maxPriceSpec);
+            Specification<Product> maxSpec = (root, query, cb) -> cb.lessThanOrEqualTo(root.get("price"), maxPrice);
+            spec = spec == null ? maxSpec : spec.and(maxSpec);
         }
 
-        Sort sort;
-        if (sortBy != null && sortBy.contains(",")) {
-            String[] sortParts = sortBy.split(",");
-            String field = sortParts[0];
-            String direction = sortParts[1];
-            sort = Sort.by(Sort.Direction.fromString(direction), field);
-        } else {
-            sort = Sort.by(Sort.Direction.ASC, sortBy != null ? sortBy : "id");
-        }
-
-        Pageable pageable = PageRequest.of(page, size, sort);
-        // Nếu spec là null, trả về tất cả sản phẩm với phân trang
-        return spec == null ? productRepository.findAll(pageable).map(this::toDTO)
+        Pageable pageable = createPageable(page, size, sortBy);
+        return spec == null
+                ? productRepository.findAll(pageable).map(this::toDTO)
                 : productRepository.findAll(spec, pageable).map(this::toDTO);
     }
 
-        @Override
-        public Product getProductEntityById(Long id) {
-            return productRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+    // ----------------------- ENTITY GET -----------------------
+    @Override
+    public Product getProductEntityById(Long id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+    }
+
+    // ----------------------- DELETE -----------------------
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteProductById(Long id) {
+        Product product = getProductEntityById(id);
+        product.setStatus(EProductStatus.DELETED);
+        productRepository.save(product);
+    }
+
+    // ----------------------- UPDATE STATUS -----------------------
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public ProductDTO updateProductStatus(Long id) {
+        Product product = getProductEntityById(id);
+        if (product.getStatus() == EProductStatus.AVAILABLE) {
+            product.setStatus(EProductStatus.UNAVAILABLE);
+        } else if (product.getStatus() == EProductStatus.UNAVAILABLE) {
+            product.setStatus(EProductStatus.AVAILABLE);
+        } else {
+            throw new IllegalStateException("Cannot change status of a deleted product");
         }
+        return toDTO(productRepository.save(product));
+    }
+
+    // ----------------------- CREATE -----------------------
+    @Override
+    public ProductResponse createProduct(ProductRequest request) {
+        Product product = Product.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .status(EProductStatus.UNAVAILABLE)
+                .build();
+
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            product.setCategory(category);
+        }
+
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            List<ProductImage> images = request.getImageUrls().stream()
+                    .map(url -> ProductImage.builder()
+                            .url(url)
+                            .name("Product Image")
+                            .product(product)
+                            .build())
+                    .collect(Collectors.toList());
+            product.setImages(images);
+        }
+
+        productRepository.save(product);
+        return mapToResponse(product);
+    }
+
+    // ----------------------- UPDATE -----------------------
+    @Override
+    public ProductResponse updateProduct(Long id, ProductRequest request) {
+        Product product = getProductEntityById(id);
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            product.setCategory(category);
+        }
+
+        if (request.getImageUrls() != null) {
+            product.getImages().clear();
+            List<ProductImage> newImages = request.getImageUrls().stream()
+                    .map(url -> ProductImage.builder()
+                            .url(url)
+                            .name("Product Image")
+                            .product(product)
+                            .build())
+                    .collect(Collectors.toList());
+            product.getImages().addAll(newImages);
+        }
+
+        productRepository.save(product);
+        return mapToResponse(product);
+    }
+
+    private ProductResponse mapToResponse(Product product) {
+        List<String> urls = product.getImages() == null ? List.of()
+                : product.getImages().stream().map(ProductImage::getUrl).toList();
+
+        Long categoryId = product.getCategory() != null ? product.getCategory().getId() : null;
+        String categoryName = product.getCategory() != null ? product.getCategory().getName() : null;
+
+        return ProductResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .imageUrls(urls)
+                .categoryId(categoryId)
+                .categoryName(categoryName)
+                .build();
+    }
 }

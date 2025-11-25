@@ -1,6 +1,8 @@
 package com.siupo.restaurant.controller;
 
 import com.siupo.restaurant.dto.CartItemDTO;
+import com.siupo.restaurant.dto.ImageDTO;
+import com.siupo.restaurant.dto.ProductDTO;
 import com.siupo.restaurant.dto.request.AddToCartRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.CartResponse;
@@ -74,8 +76,7 @@ public class CartController {
     @GetMapping
     public ResponseEntity<ApiResponse<CartResponse>> getCart(@AuthenticationPrincipal User user){
         Cart cart = cartService.getCartByUser(user);
-
-        CartResponse cartResponse = mapToCartResponse(cart);
+                CartResponse cartResponse = mapToCartResponse(cart);
 
         ApiResponse<CartResponse> response = ApiResponse.<CartResponse>builder()
                 .success(true)
@@ -91,17 +92,33 @@ public class CartController {
                 .id(cart.getId())
                 .totalPrice(cart.getTotalPrice())
                 .items(cart.getItems().stream()
-                        .map(item -> CartItemDTO.builder()
-                                .id(item.getId())
-                                .productId(item.getProduct().getId())
-                                .productName(item.getProduct().getName())
-                                .price(item.getPrice())
-                                .productImage(item.getProduct().getImages().stream()
-                                    .findFirst()
-                                    .map(ProductImage::getUrl)
-                                    .orElse(null))
-                                .quantity(item.getQuantity())
-                                .build())
+                        .map(item -> {
+                            ProductDTO productDTO = ProductDTO.builder()
+                                    .id(item.getProduct().getId())
+                                    .name(item.getProduct().getName())
+                                    .description(item.getProduct().getDescription())
+                                    .price(item.getProduct().getPrice())
+                                    .images(item.getProduct().getImages().stream()
+                                            .map(img -> {
+                                                ImageDTO dto = new ImageDTO();
+                                                dto.setId(img.getId());
+                                                dto.setUrl(img.getUrl());
+                                                dto.setName(img.getName());
+                                                return dto;
+                                            })
+                                            .toList())
+                                    .imageUrls(item.getProduct().getImages().stream()
+                                            .map(ProductImage::getUrl)
+                                            .toList())
+                                    .build();
+
+                            return CartItemDTO.builder()
+                                    .id(item.getId())
+                                    .product(productDTO)
+                                    .price(item.getPrice())
+                                    .quantity(item.getQuantity())
+                                    .build();
+                        })
                         .toList())
                 .build();
     }

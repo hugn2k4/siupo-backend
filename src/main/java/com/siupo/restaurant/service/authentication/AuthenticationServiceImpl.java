@@ -4,6 +4,7 @@ import com.siupo.restaurant.dto.UserDTO;
 import com.siupo.restaurant.dto.request.*;
 import com.siupo.restaurant.dto.response.LoginDataResponse;
 import com.siupo.restaurant.dto.response.MessageDataReponse;
+import com.siupo.restaurant.enums.EUserStatus;
 import com.siupo.restaurant.exception.BadRequestException;
 import com.siupo.restaurant.exception.UnauthorizedException;
 import com.siupo.restaurant.model.Customer;
@@ -19,7 +20,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +34,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtUtils jwtUtils;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
     @Value("${jwt.refresh-expiration}")
@@ -59,7 +60,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationServiceImpl(UserRepository userRepository,
                                      RefreshTokenRepository refreshTokenRepository,
                                      JwtUtils jwtUtils,
-                                     BCryptPasswordEncoder passwordEncoder,
+                                     PasswordEncoder passwordEncoder,
                                      EmailService emailService) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -375,5 +376,30 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             pendingForgotPasswords.remove(email);
             return new MessageDataReponse(false, "400", "Không thể gửi email OTP, vui lòng thử lại!");
         }
+    }
+
+    // =============== OAUTH2 USER PROCESSING ===============
+    @Override
+    @Transactional
+    public User processOAuth2User(String email, String name, String picture) {
+        // Check if user already exists
+        Optional<User> existingUser = userRepository.findByEmail(email);
+        
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        }
+        
+        // Create new customer account for OAuth2 user
+        String randomPassword = UUID.randomUUID().toString();
+        
+        Customer newCustomer = Customer.builder()
+                .email(email)
+                .password(passwordEncoder.encode(randomPassword))
+                .fullName(name != null ? name : "Google User")
+                .status(EUserStatus.ACTIVE)
+                .totalSpent(0.0)
+                .build();
+        
+        return userRepository.save(newCustomer);
     }
 }

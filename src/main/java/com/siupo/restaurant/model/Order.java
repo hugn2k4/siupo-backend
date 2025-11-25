@@ -29,8 +29,14 @@ public class Order {
     private Double totalPrice;
 
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "id", column = @Column(insertable = false, updatable = false))
+    })
     private AddressDTO shippingAddress;
+
     private Double shippingFee;
+
+    private Double vat;
 
     @Enumerated(EnumType.STRING)
     private EOrderStatus status;

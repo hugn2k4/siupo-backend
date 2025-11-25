@@ -50,5 +50,4 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private EUserStatus status = EUserStatus.ACTIVE;
-
 }

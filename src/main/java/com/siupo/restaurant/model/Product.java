@@ -9,6 +9,7 @@ import java.util.List;
 import com.siupo.restaurant.enums.EProductStatus;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Where;
 
 @Entity
 @Table(name = "products")
@@ -16,6 +17,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Where(clause = "status != 'DELETED'")
 public class Product {
 
     @Id

@@ -1,19 +1,17 @@
-package com.siupo.restaurant.service.OrderAtTable;
+package com.siupo.restaurant.service.orderAtTable;
 
 import com.siupo.restaurant.dto.request.OrderAtTableRequest;
 import com.siupo.restaurant.dto.response.OrderAtTableResponse;
+import com.siupo.restaurant.dto.response.OrderItemResponse;
+import com.siupo.restaurant.dto.response.ProductSimpleResponse;
 import com.siupo.restaurant.enums.EProductStatus;
 import com.siupo.restaurant.exception.NotFoundException;
 import com.siupo.restaurant.exception.OutOfStockException;
-import com.siupo.restaurant.model.OrderAtTable;
-import com.siupo.restaurant.model.OrderItem;
-import com.siupo.restaurant.model.Product;
-import com.siupo.restaurant.model.TableEntity;
+import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.OrderAtTableRepository;
 import com.siupo.restaurant.repository.OrderItemRepository;
 import com.siupo.restaurant.repository.ProductRepository;
 import com.siupo.restaurant.repository.TableRepository;
-import com.siupo.restaurant.service.OrderAtTable.OrderAtTableService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -121,15 +119,23 @@ public class OrderAtTableServiceImpl implements OrderAtTableService {
     }
 
     private OrderAtTableResponse buildOrderResponse(OrderAtTable order, double totalAmount) {
-        List<OrderAtTableResponse.OrderItemResponse> itemResponses = order.getItems().stream()
-                .map(item -> OrderAtTableResponse.OrderItemResponse.builder()
-                        .itemId(item.getId())
-                        .productId(item.getProduct().getId())
-                        .productName(item.getProduct().getName())
-                        .quantity(item.getQuantity())
-                        .price(item.getPrice())
-                        .subtotal(item.getPrice() * item.getQuantity())
-                        .build())
+        // Map OrderItem sang OrderItemResponse (sử dụng class đã tách riêng)
+        List<OrderItemResponse> itemResponses = order.getItems().stream()
+                .map(item -> {
+                    // Map Product sang ProductSimpleResponse
+                    ProductSimpleResponse productResponse = mapToProductSimpleResponse(item.getProduct());
+
+                    // Build OrderItemResponse
+                    return OrderItemResponse.builder()
+                            .id(item.getId())
+                            .quantity(item.getQuantity())
+                            .price(item.getPrice())
+                            .note(item.getNote())
+                            .reviewed(item.getReviewed())
+                            .product(productResponse)
+                            .createdAt(item.getCreatedAt())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return OrderAtTableResponse.builder()
@@ -139,6 +145,31 @@ public class OrderAtTableServiceImpl implements OrderAtTableService {
                 .items(itemResponses)
                 .totalAmount(totalAmount)
                 .createdAt(order.getCreatedAt())
+                .build();
+    }
+    private ProductSimpleResponse mapToProductSimpleResponse(Product product) {
+        if (product == null) return null;
+
+        List<ProductImage> productImages = product.getImages();
+        String imageUrl = null;
+        List<String> imageUrls = new ArrayList<>();
+
+        if (productImages != null && !productImages.isEmpty()) {
+            // Lấy URL đầu tiên làm imageUrl chính
+            imageUrl = productImages.get(0).getUrl();
+            // Convert tất cả ProductImage sang List<String> URLs
+            imageUrls = productImages.stream()
+                    .map(ProductImage::getUrl)
+                    .collect(Collectors.toList());
+        }
+
+        return ProductSimpleResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .imageUrl(imageUrl)
+                .imageUrls(imageUrls)
                 .build();
     }
 }
