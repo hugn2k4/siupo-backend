@@ -23,6 +23,10 @@ public class  CartItem {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "combo_id")
+    private Combo combo;
+
     private Long quantity;
     private Double price;
 

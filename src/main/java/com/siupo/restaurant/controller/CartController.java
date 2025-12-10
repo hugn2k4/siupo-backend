@@ -6,12 +6,12 @@ import com.siupo.restaurant.dto.ProductDTO;
 import com.siupo.restaurant.dto.request.AddToCartRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.CartResponse;
+import com.siupo.restaurant.dto.response.ComboResponse;
+import com.siupo.restaurant.mapper.ComboMapper;
 import com.siupo.restaurant.model.Cart;
-import com.siupo.restaurant.model.Product;
 import com.siupo.restaurant.model.ProductImage;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.service.cart.CartService;
-import com.siupo.restaurant.service.product.ProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -22,17 +22,16 @@ import org.springframework.web.bind.annotation.*;
 public class CartController {
 
     public final CartService cartService;
-    private final ProductService productService;
+    private final ComboMapper comboMapper;
 
-    public CartController(CartService cartService, ProductService productService) {
+    public CartController(CartService cartService, ComboMapper comboMapper) {
         this.cartService = cartService;
-        this.productService = productService;
+        this.comboMapper = comboMapper;
     }
 
     @PostMapping("/add")
     public ResponseEntity<ApiResponse<CartResponse>> addToCart(@AuthenticationPrincipal User user, @RequestBody AddToCartRequest request) {
-        Product product = productService.getProductEntityById(request.getProductId());
-        Cart cart = cartService.addItemToCart(user, product, request.getQuantity());
+        Cart cart = cartService.addItemToCart(user, request);
 
         CartResponse cartResponse = mapToCartResponse(cart);
 
@@ -76,7 +75,7 @@ public class CartController {
     @GetMapping
     public ResponseEntity<ApiResponse<CartResponse>> getCart(@AuthenticationPrincipal User user){
         Cart cart = cartService.getCartByUser(user);
-                CartResponse cartResponse = mapToCartResponse(cart);
+        CartResponse cartResponse = mapToCartResponse(cart);
 
         ApiResponse<CartResponse> response = ApiResponse.<CartResponse>builder()
                 .success(true)
@@ -93,7 +92,11 @@ public class CartController {
                 .totalPrice(cart.getTotalPrice())
                 .items(cart.getItems().stream()
                         .map(item -> {
-                            ProductDTO productDTO = ProductDTO.builder()
+                        ProductDTO productDTO = null;
+                        ComboResponse comboDTO = null;
+
+                        if (item.getProduct() != null) {
+                            productDTO = ProductDTO.builder()
                                     .id(item.getProduct().getId())
                                     .name(item.getProduct().getName())
                                     .description(item.getProduct().getDescription())
@@ -111,16 +114,52 @@ public class CartController {
                                             .map(ProductImage::getUrl)
                                             .toList())
                                     .build();
+                        }
 
-                            return CartItemDTO.builder()
-                                    .id(item.getId())
-                                    .product(productDTO)
-                                    .price(item.getPrice())
-                                    .quantity(item.getQuantity())
-                                    .build();
-                        })
-                        .toList())
+                        // Nếu là combo
+                        if (item.getCombo() != null) {
+                            comboDTO = comboMapper.toResponse(item.getCombo());
+                        }
+
+                        return CartItemDTO.builder()
+                                .id(item.getId())
+                                .product(productDTO)
+                                .combo(comboDTO)
+                                .price(item.getPrice())
+                                .quantity(item.getQuantity())
+                                .build();
+                    })
+                    .toList())
                 .build();
+
+//                            ProductDTO productDTO = ProductDTO.builder()
+//                                    .id(item.getProduct().getId())
+//                                    .name(item.getProduct().getName())
+//                                    .description(item.getProduct().getDescription())
+//                                    .price(item.getProduct().getPrice())
+//                                    .images(item.getProduct().getImages().stream()
+//                                            .map(img -> {
+//                                                ImageDTO dto = new ImageDTO();
+//                                                dto.setId(img.getId());
+//                                                dto.setUrl(img.getUrl());
+//                                                dto.setName(img.getName());
+//                                                return dto;
+//                                            })
+//                                            .toList())
+//                                    .imageUrls(item.getProduct().getImages().stream()
+//                                            .map(ProductImage::getUrl)
+//                                            .toList())
+//                                    .build();
+//
+//                            return CartItemDTO.builder()
+//                                    .id(item.getId())
+//                                    .product(productDTO)
+//                                    .price(item.getPrice())
+//                                    .quantity(item.getQuantity())
+//                                    .build();
+//                        })
+//                        .toList())
+//                .build();
     }
 
 }

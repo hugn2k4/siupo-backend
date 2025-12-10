@@ -5,6 +5,7 @@ import com.siupo.restaurant.dto.request.CreateComboRequest;
 import com.siupo.restaurant.dto.response.ComboResponse;
 import com.siupo.restaurant.enums.EProductStatus;
 import com.siupo.restaurant.exception.ResourceNotFoundException;
+import com.siupo.restaurant.mapper.ComboMapper;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.ComboItemRepository;
 import com.siupo.restaurant.repository.ComboRepository;
@@ -24,10 +25,11 @@ public class ComboServiceImpl implements ComboService {
     private final ComboRepository comboRepository;
     private final ComboItemRepository comboItemRepository;
     private final ProductRepository productRepository;
+    private final ComboMapper comboMapper;
 
     @Override
     @Transactional
-    public ComboResponse createCombo(CreateComboRequest request) {
+    public Combo createCombo(CreateComboRequest request) {
         // Create Combo entity
         Combo combo = Combo.builder()
                 .name(request.getName())
@@ -74,17 +76,17 @@ public class ComboServiceImpl implements ComboService {
         combo.setItems(items);
         combo = comboRepository.save(combo);
         
-        return ComboResponse.mapToResponse(combo);
+        return combo;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ComboResponse getComboById(Long id) {
+    public Combo getComboById(Long id) {
         Combo combo = comboRepository.findByIdWithItems(id);
         if (combo == null) {
             throw new ResourceNotFoundException("Không tìm thấy combo với ID: " + id);
         }
-        return ComboResponse.mapToResponse(combo);
+        return combo;
     }
 
     @Override
@@ -93,7 +95,7 @@ public class ComboServiceImpl implements ComboService {
         List<Combo> combos = comboRepository.findAll();
         return combos.stream()
                 .filter(combo -> combo.getStatus() != EProductStatus.DELETED)
-                .map(ComboResponse::mapToResponse)
+                .map(comboMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -102,13 +104,13 @@ public class ComboServiceImpl implements ComboService {
     public List<ComboResponse> getAvailableCombos() {
         List<Combo> combos = comboRepository.findByStatus(EProductStatus.AVAILABLE);
         return combos.stream()
-                .map(ComboResponse::mapToResponse)
+                .map(comboMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public ComboResponse updateCombo(Long id, CreateComboRequest request) {
+    public Combo updateCombo(Long id, CreateComboRequest request) {
         Combo combo = comboRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy combo với ID: " + id));
         
@@ -161,7 +163,7 @@ public class ComboServiceImpl implements ComboService {
         combo.setItems(items);
         combo = comboRepository.save(combo);
         
-        return ComboResponse.mapToResponse(combo);
+        return combo;
     }
 
     @Override
@@ -176,7 +178,7 @@ public class ComboServiceImpl implements ComboService {
 
     @Override
     @Transactional
-    public ComboResponse toggleComboStatus(Long id) {
+    public Combo toggleComboStatus(Long id) {
         Combo combo = comboRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy combo với ID: " + id));
         
@@ -188,6 +190,6 @@ public class ComboServiceImpl implements ComboService {
         }
         
         combo = comboRepository.save(combo);
-        return ComboResponse.mapToResponse(combo);
+        return combo;
     }
 }
