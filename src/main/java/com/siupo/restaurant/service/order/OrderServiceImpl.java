@@ -50,19 +50,40 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("Danh sách sản phẩm đặt hàng không được để trống");
         }
 
-        // Kiểm tra sản phẩm request có trong cart
+        // Kiểm tra sản phẩm/combo request có trong cart
         for (CartItemDTO item : request.getItems()) {
-            CartItem ci = cartItems.stream()
-                    .filter(c -> c.getProduct().getId().equals(item.getProduct().getId()))
-                    .findFirst()
-                    .orElseThrow(() -> new BadRequestException("Sản phẩm không tồn tại trong giỏ hàng"));
+            CartItem ci = null;
+            String itemName = "";
+
+            // Tìm cart item tương ứng (product hoặc combo)
+            if (item.getProduct() != null && item.getProduct().getId() != null) {
+                ci = cartItems.stream()
+                        .filter(c -> c.getProduct() != null && c.getProduct().getId().equals(item.getProduct().getId()))
+                        .findFirst()
+                        .orElse(null);
+                if (ci != null) {
+                    itemName = ci.getProduct().getName();
+                }
+            } else if (item.getCombo() != null && item.getCombo().getId() != null) {
+                ci = cartItems.stream()
+                        .filter(c -> c.getCombo() != null && c.getCombo().getId().equals(item.getCombo().getId()))
+                        .findFirst()
+                        .orElse(null);
+                if (ci != null) {
+                    itemName = ci.getCombo().getName();
+                }
+            }
+
+            if (ci == null) {
+                throw new BadRequestException("Sản phẩm/Combo không tồn tại trong giỏ hàng");
+            }
 
             if (item.getQuantity() == null || item.getQuantity() <= 0) {
-                throw new BadRequestException("Số lượng sản phẩm không hợp lệ");
+                throw new BadRequestException("Số lượng không hợp lệ");
             }
 
             if (!item.getQuantity().equals(ci.getQuantity())) {
-                throw new BadRequestException("Số lượng sản phẩm " + ci.getProduct().getName() + " không khớp");
+                throw new BadRequestException("Số lượng " + itemName + " không khớp");
             }
         }
 
@@ -78,17 +99,38 @@ public class OrderServiceImpl implements OrderService {
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CartItemDTO item : request.getItems()) {
-            CartItem cartItem = cartItems.stream()
-                    .filter(ci -> ci.getProduct().getId().equals(item.getProduct().getId()))
-                    .findFirst()
-                    .get();
+            CartItem cartItem = null;
+            double price = 0.0;
 
-            double price = cartItem.getProduct().getPrice();
+            // Tìm cart item tương ứng (product hoặc combo)
+            if (item.getProduct() != null && item.getProduct().getId() != null) {
+                cartItem = cartItems.stream()
+                        .filter(ci -> ci.getProduct() != null && ci.getProduct().getId().equals(item.getProduct().getId()))
+                        .findFirst()
+                        .orElse(null);
+                if (cartItem != null) {
+                    price = cartItem.getProduct().getPrice();
+                }
+            } else if (item.getCombo() != null && item.getCombo().getId() != null) {
+                cartItem = cartItems.stream()
+                        .filter(ci -> ci.getCombo() != null && ci.getCombo().getId().equals(item.getCombo().getId()))
+                        .findFirst()
+                        .orElse(null);
+                if (cartItem != null) {
+                    price = cartItem.getCombo().getBasePrice();
+                }
+            }
+
+            if (cartItem == null) {
+                continue; // Skip nếu không tìm thấy
+            }
+
             subTotal += price * item.getQuantity();
 
             OrderItem oi = OrderItem.builder()
                     .order(order)
                     .product(cartItem.getProduct())
+                    .combo(cartItem.getCombo())
                     .quantity(item.getQuantity())
                     .price(price)
                     .reviewed(false)
@@ -112,11 +154,22 @@ public class OrderServiceImpl implements OrderService {
         order.setPayment(payment);
         orderRepository.save(order);
 
-        // Xóa sản phẩm trong cart
-        List<Long> productIds = request.getItems().stream()
-                .map(i -> i.getProduct().getId())
-                .toList();
-        cartItemRepository.deleteByCartAndProductIdIn(cart, productIds);
+        // Xóa sản phẩm/combo trong cart
+        List<Long> itemIdsToDelete = new ArrayList<>();
+        for (CartItemDTO item : request.getItems()) {
+            if (item.getProduct() != null && item.getProduct().getId() != null) {
+                cartItems.stream()
+                        .filter(ci -> ci.getProduct() != null && ci.getProduct().getId().equals(item.getProduct().getId()))
+                        .findFirst()
+                        .ifPresent(ci -> itemIdsToDelete.add(ci.getId()));
+            } else if (item.getCombo() != null && item.getCombo().getId() != null) {
+                cartItems.stream()
+                        .filter(ci -> ci.getCombo() != null && ci.getCombo().getId().equals(item.getCombo().getId()))
+                        .findFirst()
+                        .ifPresent(ci -> itemIdsToDelete.add(ci.getId()));
+            }
+        }
+        cartItemRepository.deleteAllById(itemIdsToDelete);
 
         // Trả response
         return buildCreateOrderResponse(order, request);
