@@ -3,6 +3,7 @@ package com.siupo.restaurant.controller;
 import com.siupo.restaurant.dto.request.CreateComboRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.ComboResponse;
+import com.siupo.restaurant.mapper.ComboMapper;
 import com.siupo.restaurant.service.combo.ComboService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,11 +19,12 @@ import java.util.List;
 public class ComboController {
 
     private final ComboService comboService;
+    private final ComboMapper comboMapper;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<ApiResponse<ComboResponse>> createCombo(@Valid @RequestBody CreateComboRequest request) {
-        ComboResponse comboResponse = comboService.createCombo(request);
+        ComboResponse comboResponse = comboMapper.toResponse(comboService.createCombo(request));
         ApiResponse<ComboResponse> response = ApiResponse.<ComboResponse>builder()
                 .success(true)
                 .code("201")
@@ -34,7 +36,7 @@ public class ComboController {
     
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ComboResponse>> getComboById(@PathVariable Long id) {
-        ComboResponse comboResponse = comboService.getComboById(id);
+        ComboResponse comboResponse = comboMapper.toResponse(comboService.getComboById(id));
         ApiResponse<ComboResponse> response = ApiResponse.<ComboResponse>builder()
                 .success(true)
                 .code("200")
@@ -64,7 +66,7 @@ public class ComboController {
     public ResponseEntity<ApiResponse<ComboResponse>> updateCombo(
             @PathVariable Long id, 
             @Valid @RequestBody CreateComboRequest request) {
-        ComboResponse comboResponse = comboService.updateCombo(id, request);
+        ComboResponse comboResponse = comboMapper.toResponse(comboService.updateCombo(id, request));
         ApiResponse<ComboResponse> response = ApiResponse.<ComboResponse>builder()
                 .success(true)
                 .code("202")
@@ -89,7 +91,7 @@ public class ComboController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<ApiResponse<ComboResponse>> toggleComboStatus(@PathVariable Long id) {
-        ComboResponse comboResponse = comboService.toggleComboStatus(id);
+        ComboResponse comboResponse = comboMapper.toResponse(comboService.toggleComboStatus(id));
         ApiResponse<ComboResponse> response = ApiResponse.<ComboResponse>builder()
                 .success(true)
                 .code("200")

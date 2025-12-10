@@ -22,38 +22,11 @@ public class ComboResponse {
     private String name;
     private String description;
     private Double basePrice;
+    private Double originalPrice;
     private List<String> imageUrls;
     private List<ComboItemResponse> items;
     private EProductStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
-    public static ComboResponse mapToResponse(Combo combo) {
-        if (combo == null) return null;
-        
-        List<String> imageUrls = combo.getImages() != null 
-                ? combo.getImages().stream()
-                    .map(ComboImage::getUrl)
-                    .collect(Collectors.toList())
-                : new ArrayList<>();
-        
-        List<ComboItemResponse> itemResponses = combo.getItems() != null
-                ? combo.getItems().stream()
-                    .map(ComboItemResponse::mapToResponse)
-                    .collect(Collectors.toList())
-                : new ArrayList<>();
-        
-        return ComboResponse.builder()
-                .id(combo.getId())
-                .name(combo.getName())
-                .description(combo.getDescription())
-                .basePrice(combo.getBasePrice())
-                .imageUrls(imageUrls)
-                .items(itemResponses)
-                .status(combo.getStatus())
-                .createdAt(combo.getCreatedAt())
-                .updatedAt(combo.getUpdatedAt())
-                .build();
-    }
 }
 
