@@ -15,10 +15,13 @@ public class OrderItemDTO {
     private Long id;
     private Long productId;
     private String productName;
+    private Long comboId;
+    private String comboName;
     private Long quantity;
     private Double price;
     private Double subTotal;
     private String productImageUrl;
+    private String comboImageUrl;
     private String note;
     private Boolean reviewed;
 
@@ -26,6 +29,7 @@ public class OrderItemDTO {
 
     public static OrderItemDTO toDTO(OrderItem item) {
         String productImageUrl = null;
+        String comboImageUrl = null;
         String categoryName = null;
 
         if (item.getProduct() != null) {
@@ -37,10 +41,18 @@ public class OrderItemDTO {
             }
         }
 
+        if (item.getCombo() != null) {
+            if (item.getCombo().getImages() != null && !item.getCombo().getImages().isEmpty()) {
+                comboImageUrl = item.getCombo().getImages().get(0).getUrl();
+            }
+        }
+
         return OrderItemDTO.builder()
                 .id(item.getId())
                 .productId(item.getProduct() != null ? item.getProduct().getId() : null)
                 .productName(item.getProduct() != null ? item.getProduct().getName() : null)
+                .comboId(item.getCombo() != null ? item.getCombo().getId() : null)
+                .comboName(item.getCombo() != null ? item.getCombo().getName() : null)
                 .quantity(item.getQuantity())
                 .price(item.getPrice())
                 .note(item.getNote())
@@ -48,6 +60,7 @@ public class OrderItemDTO {
                 .subTotal(item.getPrice() != null && item.getQuantity() != null
                         ? item.getPrice() * item.getQuantity() : null)
                 .productImageUrl(productImageUrl)
+                .comboImageUrl(comboImageUrl)
                 .productCategoryName(categoryName)
                 .build();
     }
