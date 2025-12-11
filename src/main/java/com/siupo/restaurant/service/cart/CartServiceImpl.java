@@ -164,19 +164,20 @@ public class CartServiceImpl implements CartService {
     public Cart removeCartItem(User user, Long itemId) {
         Cart cart = getCartByUser(user);
 
-        List<CartItem> cartItems = cartItemRepository.findByCart(cart);
+        // Tìm và xóa cart item
+        CartItem itemToRemove = cart.getItems().stream()
+                .filter(item -> item.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Cart item not found"));
 
-        for (Iterator<CartItem> iterator = cartItems.iterator(); iterator.hasNext();) {
-            CartItem cartItem = iterator.next();
+        // Xóa khỏi collection của cart
+        cart.getItems().remove(itemToRemove);
+        
+        // Xóa khỏi database
+        cartItemRepository.delete(itemToRemove);
 
-            if (cartItem.getId().equals(itemId)) {
-                iterator.remove();
-                cartItemRepository.delete(cartItem);
-                break;
-            }
-        }
-
-        double totalPrice = cartItems.stream()
+        // Tính lại tổng giá từ các items còn lại
+        double totalPrice = cart.getItems().stream()
                 .mapToDouble(CartItem::getPrice)
                 .sum();
 

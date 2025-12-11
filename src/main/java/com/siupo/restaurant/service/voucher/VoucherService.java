@@ -12,6 +12,9 @@ import java.util.List;
 
 public interface VoucherService {
     
+    // ========== Public APIs (No auth required) ==========
+    List<VoucherDTO> getPublicVouchers();
+    
     // ========== Customer APIs ==========
     List<VoucherDTO> getAvailableVouchers(User user);
     VoucherDiscountResponse validateAndCalculateDiscount(ApplyVoucherRequest request, User user);
