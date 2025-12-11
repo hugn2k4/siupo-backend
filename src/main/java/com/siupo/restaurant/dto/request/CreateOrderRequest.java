@@ -23,4 +23,6 @@ public class CreateOrderRequest {
     private EPaymentMethod paymentMethod = EPaymentMethod.COD;
 
     private List<CartItemDTO> items;
+    
+    private String voucherCode;
 }

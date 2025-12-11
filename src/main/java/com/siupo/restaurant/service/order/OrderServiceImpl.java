@@ -13,6 +13,7 @@ import com.siupo.restaurant.exception.NotFoundException;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.*;
 import com.siupo.restaurant.service.payment.MomoPaymentService;
+import com.siupo.restaurant.service.voucher.VoucherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemRepository orderItemRepository;
     private final PaymentRepository paymentRepository;
     private final MomoPaymentService momoPaymentService;
+    private final VoucherService voucherService;
 
     @Override
     @Transactional
@@ -144,6 +146,57 @@ public class OrderServiceImpl implements OrderService {
         double vat = Math.round(subTotal * 0.1 * 100) / 100.0;
         double shippingFee = (request.getPaymentMethod() == EPaymentMethod.COD) ? 2.0 : 0.0;
         double total = subTotal + vat + shippingFee;
+        
+        // Apply voucher if provided
+        Voucher appliedVoucher = null;
+        double discountAmount = 0.0;
+        if (request.getVoucherCode() != null && !request.getVoucherCode().trim().isEmpty()) {
+            try {
+                appliedVoucher = voucherService.getVoucherEntityByCode(request.getVoucherCode());
+                
+                // Validate voucher before applying
+                if (!voucherService.canUserUseVoucher(appliedVoucher, user)) {
+                    throw new BadRequestException("Bạn không thể sử dụng voucher này");
+                }
+                
+                // Check minimum order value
+                if (appliedVoucher.getMinOrderValue() != null && total < appliedVoucher.getMinOrderValue()) {
+                    throw new BadRequestException(
+                        String.format("Đơn hàng tối thiểu phải từ %.0f VND để sử dụng voucher này", 
+                            appliedVoucher.getMinOrderValue())
+                    );
+                }
+                
+                // Calculate discount based on voucher type
+                switch (appliedVoucher.getType()) {
+                    case PERCENTAGE:
+                        discountAmount = total * (appliedVoucher.getDiscountValue() / 100.0);
+                        if (appliedVoucher.getMaxDiscountAmount() != null && discountAmount > appliedVoucher.getMaxDiscountAmount()) {
+                            discountAmount = appliedVoucher.getMaxDiscountAmount();
+                        }
+                        break;
+                    case FIXED_AMOUNT:
+                        discountAmount = appliedVoucher.getDiscountValue();
+                        if (discountAmount > total) {
+                            discountAmount = total;
+                        }
+                        break;
+                    case FREE_SHIPPING:
+                        discountAmount = shippingFee;
+                        break;
+                }
+                
+                discountAmount = Math.round(discountAmount * 100.0) / 100.0;
+                total = total - discountAmount;
+                
+                order.setVoucher(appliedVoucher);
+                order.setDiscountAmount(discountAmount);
+                
+                log.info("Applied voucher {} with discount {} for order", appliedVoucher.getCode(), discountAmount);
+            } catch (NotFoundException e) {
+                throw new BadRequestException("Voucher không hợp lệ: " + request.getVoucherCode());
+            }
+        }
 
         order.setVat(vat);
         order.setShippingFee(shippingFee);
@@ -153,6 +206,11 @@ public class OrderServiceImpl implements OrderService {
         Payment payment = handlePayment(order, total, request.getPaymentMethod());
         order.setPayment(payment);
         orderRepository.save(order);
+        
+        // Record voucher usage after successful order creation
+        if (appliedVoucher != null) {
+            voucherService.recordVoucherUsage(appliedVoucher, user, order.getId(), discountAmount);
+        }
 
         // Xóa sản phẩm/combo trong cart
         List<Long> itemIdsToDelete = new ArrayList<>();
@@ -213,7 +271,10 @@ public class OrderServiceImpl implements OrderService {
                         .stream()
                         .map(OrderItemDTO::toDTO)
                         .toList()
-                );
+                )
+                .voucherCode(order.getVoucher() != null ? order.getVoucher().getCode() : null)
+                .discountAmount(order.getDiscountAmount())
+                .finalAmount(order.getTotalPrice());
 
         if (order.getPayment() != null && order.getPayment().getPaymentMethod() == EPaymentMethod.MOMO) {
             try {
