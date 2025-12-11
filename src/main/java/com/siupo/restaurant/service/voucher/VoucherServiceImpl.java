@@ -34,6 +34,25 @@ public class VoucherServiceImpl implements VoucherService {
     private final VoucherUsageRepository voucherUsageRepository;
     private final OrderRepository orderRepository;
 
+    // ========== Public APIs (No auth required) ==========
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VoucherDTO> getPublicVouchers() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Voucher> vouchers = voucherRepository.findAvailableVouchers(EVoucherStatus.ACTIVE, now);
+
+        return vouchers.stream()
+                .filter(Voucher::getIsPublic)
+                .map(voucher -> {
+                    VoucherDTO dto = VoucherDTO.toDTO(voucher);
+                    dto.setIsAvailable(true);
+                    dto.setUserUsageCount(0);
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
     // ========== Customer APIs ==========
 
     @Override
