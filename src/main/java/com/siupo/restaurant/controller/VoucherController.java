@@ -149,7 +149,6 @@ public class VoucherController {
                         .build());
     }
 
-    @GetMapping("/admin/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<VoucherDTO>> getVoucherById(@PathVariable Long id) {
         VoucherDTO voucher = voucherService.getVoucherById(id);
