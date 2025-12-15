@@ -7,8 +7,10 @@ import com.siupo.restaurant.dto.response.ProductResponse;
 import com.siupo.restaurant.enums.EProductStatus;
 import com.siupo.restaurant.model.Category;
 import com.siupo.restaurant.model.ProductImage;
+import com.siupo.restaurant.model.ProductTag;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.repository.CategoryRepository;
+import com.siupo.restaurant.repository.ProductTagRepository;
 import com.siupo.restaurant.exception.ResourceNotFoundException;
 import com.siupo.restaurant.model.Product;
 import com.siupo.restaurant.repository.ProductRepository;
@@ -34,6 +36,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private ProductTagRepository productTagRepository;
 
     @Autowired
     private WishlistService wishlistService;
@@ -102,6 +107,14 @@ public class ProductServiceImpl implements ProductService {
             }
             return reviewDTO;
         }).collect(Collectors.toList()));
+        
+        // Map tags
+        if (product.getTags() != null && !product.getTags().isEmpty()) {
+            dto.setTags(product.getTags().stream()
+                    .map(ProductTag::getName)
+                    .collect(Collectors.toList()));
+        }
+        
         dto.setStatus(product.getStatus());
         dto.setCreatedAt(product.getCreatedAt());
         dto.setUpdatedAt(product.getUpdatedAt());
@@ -216,6 +229,19 @@ public class ProductServiceImpl implements ProductService {
             product.setImages(images);
         }
 
+        if (request.getTags() != null && !request.getTags().isEmpty()) {
+            for (String tagName : request.getTags()) {
+                ProductTag tag = productTagRepository.findByName(tagName)
+                        .orElseGet(() -> {
+                            ProductTag newTag = ProductTag.builder()
+                                    .name(tagName)
+                                    .build();
+                            return productTagRepository.save(newTag);
+                        });
+                product.getTags().add(tag);
+            }
+        }
+
         productRepository.save(product);
         return mapToResponse(product);
     }
@@ -246,6 +272,20 @@ public class ProductServiceImpl implements ProductService {
             product.getImages().addAll(newImages);
         }
 
+        if (request.getTags() != null) {
+            product.getTags().clear();
+            for (String tagName : request.getTags()) {
+                ProductTag tag = productTagRepository.findByName(tagName)
+                        .orElseGet(() -> {
+                            ProductTag newTag = ProductTag.builder()
+                                    .name(tagName)
+                                    .build();
+                            return productTagRepository.save(newTag);
+                        });
+                product.getTags().add(tag);
+            }
+        }
+
         productRepository.save(product);
         return mapToResponse(product);
     }
@@ -257,6 +297,9 @@ public class ProductServiceImpl implements ProductService {
         Long categoryId = product.getCategory() != null ? product.getCategory().getId() : null;
         String categoryName = product.getCategory() != null ? product.getCategory().getName() : null;
 
+        List<String> tags = product.getTags() == null ? List.of()
+                : product.getTags().stream().map(ProductTag::getName).toList();
+
         return ProductResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -265,6 +308,7 @@ public class ProductServiceImpl implements ProductService {
                 .imageUrls(urls)
                 .categoryId(categoryId)
                 .categoryName(categoryName)
+                .tags(tags)
                 .build();
     }
 }

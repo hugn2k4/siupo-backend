@@ -10,4 +10,5 @@ public class ProductRequest {
     private Double price;
     private Long categoryId;
     private List<String> imageUrls;
+    private List<String> tags;
 }
