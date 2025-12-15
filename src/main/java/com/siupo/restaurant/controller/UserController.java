@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
+import com.siupo.restaurant.dto.ImageDTO;
 import java.util.List;
 
 @RestController
@@ -59,6 +59,14 @@ public class UserController {
     // ==================== HELPER ====================
 
     private UserResponse mapToUserResponse(User user) {
+        ImageDTO avatarDTO = null;
+        if (user.getAvatar() != null) {
+            avatarDTO = ImageDTO.builder()
+                    .id(user.getAvatar().getId())
+                    .url(user.getAvatar().getUrl())
+                    .name(user.getAvatar().getName())
+                    .build();
+        }
         return UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
@@ -68,6 +76,7 @@ public class UserController {
                 .dateOfBirth(user.getDateOfBirth())
                 .gender(user.getGender())
                 .status(user.getStatus())
+                .avatar(avatarDTO)
                 .build();
     }
 

@@ -6,4 +6,7 @@ import lombok.Data;
 public class CategoryDTO {
     private Long id;
     private String name;
+    private String imageUrl;
+    private String imageName;
+    private ImageDTO image;
 }

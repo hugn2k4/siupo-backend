@@ -18,4 +18,7 @@ public class Category {
     @Column(nullable = false, unique = true)
     private String name;
 
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "image_id", referencedColumnName = "id")
+    private Image image;
 }

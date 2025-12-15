@@ -16,6 +16,8 @@ import java.time.LocalDate;
 @Builder
 public class UserRequest {
     @NotBlank(message = "Full name cannot be blank")
+    private String avatarUrl;
+    private String avatarName;
     private String fullName;
     @Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")
     private String phoneNumber;

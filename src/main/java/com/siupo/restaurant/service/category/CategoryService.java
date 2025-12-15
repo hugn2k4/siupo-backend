@@ -6,8 +6,12 @@ import com.siupo.restaurant.dto.response.MessageDataReponse;
 import java.util.List;
 
 public interface CategoryService {
+
     List<CategoryDTO> getAllCategories();
+
     CategoryDTO addCategory(CategoryDTO categoryDTO);
-    CategoryDTO updateCategory(Long id,CategoryDTO categoryDTO);
+
+    CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO);
+
     MessageDataReponse deleteCategory(Long id);
 }

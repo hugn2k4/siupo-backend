@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import com.siupo.restaurant.dto.ImageDTO;
 import java.time.LocalDate;
 
 @Data
@@ -23,4 +23,5 @@ public class UserResponse {
     private LocalDate dateOfBirth;
     private EGender gender;
     private EUserStatus status;
+    private ImageDTO avatar;
 }

@@ -37,8 +37,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/auth/request-forgot-password",
             "/error",
             "/api/categories",
-            "/api/products",
-            "/api/products/search",
             "/error",
             "/api/place-table-for-guest/place-table",
             "/oauth2/authorization/google"
