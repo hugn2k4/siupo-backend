@@ -19,7 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
-
+import com.siupo.restaurant.model.Image;
+import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
@@ -35,8 +36,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public User getCurrentUserInfo(User user) {
         if (user == null) throw new UnauthorizedException("User not authenticated");
+
+        // Buộc Entity Avatar (LAZY) được tải trong Transaction
+        if (user.getAvatar() != null) {
+            // Chỉ cần truy cập một thuộc tính bất kỳ (ví dụ: getId()) để khởi tạo proxy.
+            user.getAvatar().getId();
+        }
+
         return user;
     }
 
@@ -49,7 +58,26 @@ public class UserServiceImpl implements UserService {
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) user.setPhoneNumber(request.getPhoneNumber());
         if (request.getDateOfBirth() != null) user.setDateOfBirth(request.getDateOfBirth());
         if (request.getGender() != null) user.setGender(request.getGender());
+        if (request.getAvatarUrl() != null || user.getAvatar() != null) {
+            Image existingAvatar = user.getAvatar();
 
+            if (existingAvatar == null && request.getAvatarUrl() != null && !request.getAvatarUrl().isBlank()) {
+                // Tạo Image Entity mới nếu chưa có và có URL mới hợp lệ
+                existingAvatar = Image.builder().url(request.getAvatarUrl()).name(request.getAvatarName()).build();
+                user.setAvatar(existingAvatar);
+            }
+
+            if (existingAvatar != null) {
+                if (request.getAvatarUrl() == null || request.getAvatarUrl().isBlank()) {
+                    // Nếu URL gửi lên là NULL hoặc rỗng, xóa Avatar
+                    user.setAvatar(null); // orphanRemoval=true sẽ xử lý xóa Image Entity
+                } else {
+                    // Cập nhật thông tin Avatar
+                    existingAvatar.setUrl(request.getAvatarUrl());
+                    existingAvatar.setName(request.getAvatarName());
+                }
+            }
+        }
         return userRepository.save(user);
     }
 
