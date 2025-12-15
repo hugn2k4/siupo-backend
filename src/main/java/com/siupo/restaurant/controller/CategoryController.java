@@ -5,6 +5,7 @@ import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.MessageDataReponse;
 import com.siupo.restaurant.service.category.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus; // Import HttpStatus
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,7 +39,7 @@ public class CategoryController {
                 .message("Category added successfully")
                 .data(createdCategory)
                 .build();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
@@ -46,7 +47,7 @@ public class CategoryController {
         CategoryDTO updatedCategory = categoryService.updateCategory(id,categoryDTO);
         ApiResponse<CategoryDTO> response = ApiResponse.<CategoryDTO>builder()
                 .success(true)
-                .code("202")
+                .code("200")
                 .message("Category updated successfully")
                 .data(updatedCategory)
                 .build();
@@ -56,11 +57,20 @@ public class CategoryController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
         MessageDataReponse messageDataReponse = categoryService.deleteCategory(id);
+        if (messageDataReponse.isSuccess()) {
+            return ResponseEntity.noContent().build();
+        }
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(messageDataReponse.isSuccess())
                 .code(messageDataReponse.getCode())
                 .message(messageDataReponse.getMessage())
                 .build();
-        return ResponseEntity.ok(response);
+        if (messageDataReponse.getCode().equals("404")) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } else if (messageDataReponse.getCode().equals("400")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } else {
+            return ResponseEntity.ok(response);
+        }
     }
 }

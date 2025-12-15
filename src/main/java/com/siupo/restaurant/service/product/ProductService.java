@@ -21,4 +21,6 @@ public interface ProductService {
     ProductDTO updateProductStatus(Long id);
     ProductDTO toDTOWithWishlist(Product product, Long userId);
     Page<ProductDTO> getAllProductsWithWishlist(User user, int page, int size, String sortBy);
+//    public Page<ProductDTO> searchAndFilterProductsWithWishlist(User user, String name, List<Long> categoryIds,
+//                                                                Double minPrice, Double maxPrice, int page, int size, String sortBy);
 }

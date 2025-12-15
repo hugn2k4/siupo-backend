@@ -12,6 +12,7 @@ import com.siupo.restaurant.repository.CategoryRepository;
 import com.siupo.restaurant.exception.ResourceNotFoundException;
 import com.siupo.restaurant.model.Product;
 import com.siupo.restaurant.repository.ProductRepository;
+import com.siupo.restaurant.repository.WishlistRepository;
 import com.siupo.restaurant.service.wishlist.WishlistService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -36,6 +37,8 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private WishlistService wishlistService;
+    @Autowired
+    private WishlistRepository wishlistRepository;
 
     // ----------------------- CREATE PAGEABLE -----------------------
     private Pageable createPageable(int page, int size, String sortBy) {
