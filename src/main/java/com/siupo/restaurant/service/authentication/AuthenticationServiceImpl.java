@@ -1,5 +1,6 @@
 package com.siupo.restaurant.service.authentication;
 
+import com.siupo.restaurant.dto.ImageDTO;
 import com.siupo.restaurant.dto.UserDTO;
 import com.siupo.restaurant.dto.request.*;
 import com.siupo.restaurant.dto.response.LoginDataResponse;
@@ -8,6 +9,7 @@ import com.siupo.restaurant.enums.EUserStatus;
 import com.siupo.restaurant.exception.BadRequestException;
 import com.siupo.restaurant.exception.UnauthorizedException;
 import com.siupo.restaurant.model.Customer;
+import com.siupo.restaurant.model.Image;
 import com.siupo.restaurant.model.RefreshToken;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.repository.RefreshTokenRepository;
@@ -215,7 +217,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .phoneNumber(user.getPhoneNumber())
                 .role(userRole)
                 .build();
-
+        if (user.getAvatar() != null) { 
+        
+            ImageDTO avatarDTO = convertImageEntityToDTO(user.getAvatar());
+            userDTO.setAvatar(avatarDTO);
+        }
         // 7. Trả về LoginDataResponse
         return LoginDataResponse.builder()
                 .message("Đăng nhập thành công")
@@ -401,5 +407,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
         
         return userRepository.save(newCustomer);
+    }
+    private ImageDTO convertImageEntityToDTO(Image imageEntity) {
+        // Logic ánh xạ Image entity -> Image DTO.
+        // Ví dụ đơn giản:
+        return ImageDTO.builder()
+                .id(imageEntity.getId())
+                .url(imageEntity.getUrl())
+                .build();
     }
 }
