@@ -14,4 +14,5 @@ public class ProductResponse {
     private List<String> imageUrls;
     private Long categoryId;
     private String categoryName;
+    private List<String> tags;
 }

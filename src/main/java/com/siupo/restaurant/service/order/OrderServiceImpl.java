@@ -97,6 +97,8 @@ public class OrderServiceImpl implements OrderService {
                 .status(EOrderStatus.PENDING)
                 .build();
 
+        order = orderRepository.save(order);
+
         double subTotal = 0.0;
         List<OrderItem> orderItems = new ArrayList<>();
 

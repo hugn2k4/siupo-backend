@@ -20,4 +20,5 @@ public class UserDTO {
     private String role;
     private LocalDate dateOfBirth;
     private EGender gender;
+    private ImageDTO avatar;
 }

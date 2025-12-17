@@ -3,6 +3,7 @@ package com.siupo.restaurant.dto;
 import com.siupo.restaurant.enums.EProductStatus;
 import com.siupo.restaurant.model.Product;
 import com.siupo.restaurant.model.ProductImage;
+import com.siupo.restaurant.model.ProductTag;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -27,6 +29,7 @@ public class ProductDTO {
     private List<ReviewDTO> reviews;
     private Double rating;
     private Integer reviewCount;
+    private List<String> tags;
     private EProductStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -66,6 +69,9 @@ public class ProductDTO {
                                 .orElse(0.0)
                         : 0.0)
                 .reviewCount(product.getReviews() != null ? product.getReviews().size() : 0)
+                .tags(product.getTags() != null ? product.getTags().stream()
+                        .map(ProductTag::getName)
+                        .collect(Collectors.toList()) : null)
                 .status(product.getStatus())
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
