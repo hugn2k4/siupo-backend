@@ -16,6 +16,7 @@ public enum ErrorCode {
     ACCOUNT_DISABLED(403, "AUTH_006", "Account is disabled"),
     ACCOUNT_LOCKED(403, "AUTH_007", "Account is locked"),
     NOT_CUSTOMER(403, "AUTH_008", "Only customers are allowed to perform this action"),
+    FORBIDDEN(403, "AUTH_009", "Forbidden"),
 
     // ================= TOKEN =================
     REFRESH_TOKEN_NOT_FOUND(404, "TOKEN_001", "Refresh token not found"),
@@ -27,6 +28,9 @@ public enum ErrorCode {
     EMAIL_ALREADY_EXISTS(409, "USER_002", "Email already exists"),
     PHONE_ALREADY_EXISTS(409, "USER_003", "Phone number already exists"),
     USER_NOT_ACTIVE(403, "USER_004", "User is not active"),
+    INVALID_PASSWORD(400, "USER_005", "Invalid password"),
+    PASSWORD_MISMATCH(400, "USER_006", "Password and confirm password do not match"),
+    NEW_PASSWORD_SAME_AS_OLD(400, "USER_007", "New password cannot be the same as the old password"),
 
     // ================= OTP =================
     OTP_EXPIRED(400, "OTP_001", "OTP has expired"),

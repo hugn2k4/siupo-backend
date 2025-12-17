@@ -34,7 +34,6 @@ public class TokenServiceImpl implements TokenService {
         // 1. Tạo Access Token
         String role = getUserRole(user);
         String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), List.of("ROLE_" + role));
-
         // 2. Tạo Refresh Token
         String refreshTokenValue = UUID.randomUUID().toString();
         RefreshToken refreshToken = RefreshToken.builder()
@@ -43,12 +42,9 @@ public class TokenServiceImpl implements TokenService {
                 .expiryDate(Instant.now().plusMillis(refreshTokenExpiration))
                 .revoked(false)
                 .build();
-
         // 3. Revoke các token cũ (Optional: Nếu muốn single session)
         revokeAllUserTokens(user);
-
         refreshTokenRepository.save(refreshToken);
-
         return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenValue)
@@ -60,15 +56,12 @@ public class TokenServiceImpl implements TokenService {
     public LoginResponse refreshAccessToken(String token) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
                 .orElseThrow(() -> new UnauthorizedException(ErrorCode.INVALID_REFRESH_TOKEN));
-
         if (refreshToken.isRevoked() || refreshToken.getExpiryDate().isBefore(Instant.now())) {
             throw new UnauthorizedException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
-
         // Token Rotation: Hủy cái cũ, tạo cặp mới
         refreshToken.setRevoked(true);
         refreshTokenRepository.save(refreshToken);
-
         return generateAuthResponse(refreshToken.getUser());
     }
 
@@ -76,12 +69,10 @@ public class TokenServiceImpl implements TokenService {
     public void revokeToken(String token) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
                 .orElse(null);
-        
         // Nếu token không tồn tại hoặc đã revoked rồi thì bỏ qua (idempotent)
         if (refreshToken == null || refreshToken.isRevoked()) {
             return;
         }
-        
         refreshToken.setRevoked(true);
         refreshTokenRepository.save(refreshToken);
     }

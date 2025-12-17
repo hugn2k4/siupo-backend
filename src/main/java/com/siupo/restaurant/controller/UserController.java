@@ -23,65 +23,47 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/customer")
-    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal User user) {
-        User currentUser = userService.getCurrentUserInfo(user);
-        UserResponse userResponse = mapToUserResponse(currentUser);
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentCustomer(@AuthenticationPrincipal User user) {
+        UserResponse userResponse = userService.getCurrentCustomerInfo(user);
         return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
-                .success(true).code("200").message("User information retrieved successfully")
-                .data(userResponse).build());
+                .success(true)
+                .code("200")
+                .message("Customer information retrieved successfully")
+                .data(userResponse)
+                .build());
     }
 
     @PutMapping("/customer")
-    public ResponseEntity<ApiResponse<UserResponse>> updateCurrentUser(
+    public ResponseEntity<ApiResponse<UserResponse>> updateCurrentCustomer(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody UserRequest request) {
-        User updatedUser = userService.updateUserInfo(user, request);
-        UserResponse userResponse = mapToUserResponse(updatedUser);
+        UserResponse userResponse = userService.updateCustomerInfo(user, request);
         return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
-                .success(true).code("200").message("User information updated successfully")
-                .data(userResponse).build());
+                .success(true)
+                .code("200")
+                .message("User information updated successfully")
+                .data(userResponse)
+                .build());
     }
 
-    @PutMapping("/customer/changepassword")
+    @PutMapping("/changepassword")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody ChangePasswordRequest request) {
         userService.changePassword(user, request);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .success(true).code("200").message("Thay đổi mật khẩu thành công").build());
+                .success(true)
+                .code("200")
+                .message("Thay đổi mật khẩu thành công")
+                .build());
     }
 
-    // ==================== HELPER ====================
-    private UserResponse mapToUserResponse(User user) {
-        ImageDTO avatarDTO = null;
-        if (user.getAvatar() != null) {
-            avatarDTO = ImageDTO.builder()
-                    .id(user.getAvatar().getId())
-                    .url(user.getAvatar().getUrl())
-                    .name(user.getAvatar().getName())
-                    .build();
-        }
-        return UserResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .phoneNumber(user.getPhoneNumber())
-                .role("CUSTOMER")
-                .dateOfBirth(user.getDateOfBirth())
-                .gender(user.getGender())
-                .status(user.getStatus())
-                .avatar(avatarDTO)
-                .build();
-    }
+    // ----------------- Admin APIs ----------------
 
     @GetMapping("/customers")
-    @PreAuthorize("hasRole('ADMIN')") // Chỉ admin được xem
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllCustomers(@AuthenticationPrincipal User currentUser) {
-        List<User> customers = userService.getAllCustomers();
-        List<UserResponse> responses = customers.stream()
-                .map(this::mapToUserResponse)
-                .toList();
-
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllCustomers() {
+        List<UserResponse> responses = userService.getAllCustomers();
         return ResponseEntity.ok(ApiResponse.<List<UserResponse>>builder()
                 .success(true)
                 .code("200")
@@ -89,14 +71,13 @@ public class UserController {
                 .data(responses)
                 .build());
     }
+
     @PutMapping("/customers/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateCustomerStatus(
             @PathVariable Long id,
             @Valid @RequestBody UpdateCustomerStatusRequest request) {
-
         userService.updateCustomerStatus(id, request.getStatus());
-
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .code("200")
