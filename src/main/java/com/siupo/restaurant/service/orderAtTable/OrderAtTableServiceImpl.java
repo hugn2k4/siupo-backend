@@ -5,8 +5,8 @@ import com.siupo.restaurant.dto.response.OrderAtTableResponse;
 import com.siupo.restaurant.dto.response.OrderItemResponse;
 import com.siupo.restaurant.dto.response.ProductSimpleResponse;
 import com.siupo.restaurant.enums.EProductStatus;
-import com.siupo.restaurant.exception.NotFoundException;
-import com.siupo.restaurant.exception.OutOfStockException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.NotFoundException;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.OrderAtTableRepository;
 import com.siupo.restaurant.repository.OrderItemRepository;
@@ -39,7 +39,8 @@ public class OrderAtTableServiceImpl implements OrderAtTableService {
 
         // Kiểm tra bàn có tồn tại không
         TableEntity table = tableRepository.findById(request.getTableId())
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn"));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn"));
 
         // Lấy danh sách product IDs từ request
         List<Long> productIds = request.getItems().stream()
@@ -50,7 +51,8 @@ public class OrderAtTableServiceImpl implements OrderAtTableService {
         List<Product> products = productRepository.findByIdIn(productIds);
 
         if (products.size() != productIds.size()) {
-            throw new NotFoundException("Một số sản phẩm không tồn tại");
+            throw new NotFoundException(ErrorCode.LOI_CHUA_DAT);
+//            throw new NotFoundException("Một số sản phẩm không tồn tại");
         }
 
         // Tạo map để dễ dàng tra cứu product
@@ -61,9 +63,10 @@ public class OrderAtTableServiceImpl implements OrderAtTableService {
         for (OrderAtTableRequest.OrderItemRequest item : request.getItems()) {
             Product product = productMap.get(item.getProductId());
             if (product.getStatus() != EProductStatus.AVAILABLE) {
-                throw new OutOfStockException(
-                        String.format("Món '%s' đã hết hàng. Vui lòng chọn món khác", product.getName())
-                );
+                throw new NotFoundException(ErrorCode.LOI_CHUA_DAT);
+//                throw new OutOfStockException(
+//                        String.format("Món '%s' đã hết hàng. Vui lòng chọn món khác", product.getName())
+//                );
             }
         }
 
@@ -109,7 +112,8 @@ public class OrderAtTableServiceImpl implements OrderAtTableService {
         log.info("Getting order by ID: {}", orderId);
 
         OrderAtTable order = orderAtTableRepository.findByIdWithItems(orderId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
 
         double totalAmount = order.getItems().stream()
                 .mapToDouble(item -> item.getPrice() * item.getQuantity())

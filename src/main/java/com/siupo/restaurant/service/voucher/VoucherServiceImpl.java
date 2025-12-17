@@ -4,9 +4,9 @@ import com.siupo.restaurant.dto.VoucherDTO;
 import com.siupo.restaurant.dto.request.ApplyVoucherRequest;
 import com.siupo.restaurant.dto.response.VoucherDiscountResponse;
 import com.siupo.restaurant.enums.EVoucherStatus;
-import com.siupo.restaurant.enums.EVoucherType;
-import com.siupo.restaurant.exception.BadRequestException;
-import com.siupo.restaurant.exception.NotFoundException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
+import com.siupo.restaurant.exception.business.NotFoundException;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.model.Voucher;
 import com.siupo.restaurant.model.VoucherUsage;
@@ -97,7 +97,7 @@ public class VoucherServiceImpl implements VoucherService {
     @Transactional(readOnly = true)
     public VoucherDTO getVoucherByCode(String code, User user) {
         Voucher voucher = voucherRepository.findByCode(code)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với mã: " + code));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.VOUCHER_NOT_FOUND));
         
         VoucherDTO dto = VoucherDTO.toDTO(voucher);
         dto.setIsAvailable(canUserUseVoucher(voucher, user));
@@ -113,12 +113,14 @@ public class VoucherServiceImpl implements VoucherService {
     public VoucherDTO createVoucher(VoucherDTO voucherDTO) {
         // Check code uniqueness
         if (voucherRepository.findByCode(voucherDTO.getCode()).isPresent()) {
-            throw new BadRequestException("Mã voucher đã tồn tại: " + voucherDTO.getCode());
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Mã voucher đã tồn tại: " + voucherDTO.getCode());
         }
         
         // Validate dates
         if (voucherDTO.getStartDate().isAfter(voucherDTO.getEndDate())) {
-            throw new BadRequestException("Ngày bắt đầu phải trước ngày kết thúc");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Ngày bắt đầu phải trước ngày kết thúc");
         }
         
         Voucher voucher = Voucher.builder()
@@ -148,19 +150,22 @@ public class VoucherServiceImpl implements VoucherService {
     @Transactional
     public VoucherDTO updateVoucher(Long id, VoucherDTO voucherDTO) {
         Voucher voucher = voucherRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với ID: " + id));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với ID: " + id));
         
         // Check code uniqueness if changed
         if (!voucher.getCode().equals(voucherDTO.getCode())) {
             if (voucherRepository.findByCode(voucherDTO.getCode()).isPresent()) {
-                throw new BadRequestException("Mã voucher đã tồn tại: " + voucherDTO.getCode());
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Mã voucher đã tồn tại: " + voucherDTO.getCode());
             }
             voucher.setCode(voucherDTO.getCode().toUpperCase());
         }
         
         // Validate dates
         if (voucherDTO.getStartDate().isAfter(voucherDTO.getEndDate())) {
-            throw new BadRequestException("Ngày bắt đầu phải trước ngày kết thúc");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Ngày bắt đầu phải trước ngày kết thúc");
         }
         
         voucher.setName(voucherDTO.getName());
@@ -186,7 +191,8 @@ public class VoucherServiceImpl implements VoucherService {
     @Transactional
     public void deleteVoucher(Long id) {
         Voucher voucher = voucherRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với ID: " + id));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với ID: " + id));
         
         // Soft delete by setting status to EXPIRED
         voucher.setStatus(EVoucherStatus.EXPIRED);
@@ -206,7 +212,8 @@ public class VoucherServiceImpl implements VoucherService {
     @Transactional(readOnly = true)
     public VoucherDTO getVoucherById(Long id) {
         Voucher voucher = voucherRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với ID: " + id));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với ID: " + id));
         return VoucherDTO.toDTO(voucher);
     }
 
@@ -214,7 +221,8 @@ public class VoucherServiceImpl implements VoucherService {
     @Transactional
     public VoucherDTO toggleVoucherStatus(Long id) {
         Voucher voucher = voucherRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với ID: " + id));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với ID: " + id));
         
         if (voucher.getStatus() == EVoucherStatus.ACTIVE) {
             voucher.setStatus(EVoucherStatus.INACTIVE);
@@ -282,7 +290,8 @@ public class VoucherServiceImpl implements VoucherService {
     @Transactional(readOnly = true)
     public Voucher getVoucherEntityByCode(String code) {
         return voucherRepository.findByCode(code.toUpperCase())
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với mã: " + code));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.VOUCHER_NOT_FOUND));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher với mã: " + code));
     }
 
     @Override
@@ -307,15 +316,17 @@ public class VoucherServiceImpl implements VoucherService {
     private void validateVoucher(Voucher voucher, User user, Double orderAmount) {
         // Check if user can use voucher
         if (!canUserUseVoucher(voucher, user)) {
-            throw new BadRequestException("Bạn không thể sử dụng voucher này");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Bạn không thể sử dụng voucher này");
         }
         
         // Check minimum order value
         if (voucher.getMinOrderValue() != null && orderAmount < voucher.getMinOrderValue()) {
-            throw new BadRequestException(
-                String.format("Đơn hàng tối thiểu phải từ %.0f VND để sử dụng voucher này", 
-                    voucher.getMinOrderValue())
-            );
+//            throw new BadRequestException(
+//                String.format("Đơn hàng tối thiểu phải từ %.0f VND để sử dụng voucher này",
+//                    voucher.getMinOrderValue())
+//            );
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
         }
     }
 

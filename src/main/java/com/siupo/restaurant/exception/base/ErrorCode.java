@@ -44,6 +44,21 @@ public enum ErrorCode {
     PRODUCT_OUT_OF_STOCK(400, "PRODUCT_002", "Product out of stock"),
     PRODUCT_ALREADY_EXISTS(409, "PRODUCT_003", "Product already exists"),
 
+    // ================= CART =================
+    MISSING_SELECTION(400, "CART_001", "Missing product or combo selection"),
+    CONFLICTING_SELECTION(400, "CART_002", "Conflicting product and combo selection"),
+    INVALID_QUANTITY(400, "CART_003", "Invalid quantity"),
+    CART_ITEM_NOT_FOUND(404, "CART_004", "Cart item not found"),
+
+    // ================ CATEGORY =================
+    CATEGORY_NOT_FOUND(404, "CATEGORY_001", "Category not found"),
+    CATEGORY_NOT_EMPTY(400, "CATEGORY_002", "Category is not empty"),
+    CANNOT_DELETE_CATEGORY(400, "CATEGORY_003", "Cannot delete category"),
+
+    // ================= COMBO =================
+    COMBO_NOT_FOUND(404, "COMBO_001", "Combo not found"),
+    CANNOT_UPDATE_DELETED_COMBO(400, "COMBO_002", "Cannot update a deleted combo"),
+
     // ================= ORDER =================
     ORDER_NOT_FOUND(404, "ORDER_001", "Order not found"),
     ORDER_INVALID_STATUS(400, "ORDER_002", "Invalid order status"),

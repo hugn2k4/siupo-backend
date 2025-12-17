@@ -28,7 +28,7 @@ public class NotificationReadStatus {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ENotificationStatus status; // READ hoặc DELETED
+    private ENotificationStatus status;
 
     private Instant updatedAt;
 }

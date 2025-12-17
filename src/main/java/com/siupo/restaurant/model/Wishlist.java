@@ -25,8 +25,7 @@ public class Wishlist {
     @OneToMany(mappedBy = "wishlist", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<WishlistItem> items = new ArrayList<>();
-    
-    // Helper methods to add/remove products
+
     public void addProduct(Product product) {
         WishlistItem item = WishlistItem.builder()
                 .wishlist(this)

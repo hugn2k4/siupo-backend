@@ -2,8 +2,9 @@ package com.siupo.restaurant.service.wishlist;
 
 import com.siupo.restaurant.dto.response.WishlistItemResponse;
 import com.siupo.restaurant.dto.response.WishlistResponse;
-import com.siupo.restaurant.exception.ConflictException;
-import com.siupo.restaurant.exception.NotFoundException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.ConflictException;
+import com.siupo.restaurant.exception.business.NotFoundException;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.ProductRepository;
 import com.siupo.restaurant.repository.UserRepository;
@@ -53,10 +54,12 @@ public class WishlistServiceImpl implements WishlistService {
                 .orElseGet(() -> createWishlistForUser(userId));
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy sản phẩm với ID: " + productId));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy sản phẩm với ID: " + productId));
 
         if (wishlistItemRepository.existsByWishlistIdAndProductId(wishlist.getId(), productId)) {
-            throw new ConflictException("Sản phẩm đã có trong danh sách yêu thích");
+            throw new ConflictException(ErrorCode.LOI_CHUA_DAT);
+//            throw new ConflictException("Sản phẩm đã có trong danh sách yêu thích");
         }
 
         wishlist.addProduct(product);
@@ -75,13 +78,16 @@ public class WishlistServiceImpl implements WishlistService {
         log.info("Removing product {} from wishlist for user: {}", productId, userId);
 
         Wishlist wishlist = wishlistRepository.findByUserId(userId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy danh sách yêu thích"));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy danh sách yêu thích"));
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy sản phẩm với ID: " + productId));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy sản phẩm với ID: " + productId));
 
         if (!wishlistItemRepository.existsByWishlistIdAndProductId(wishlist.getId(), productId)) {
-            throw new NotFoundException("Sản phẩm không có trong danh sách yêu thích");
+            throw new NotFoundException(ErrorCode.LOI_CHUA_DAT);
+//            throw new NotFoundException("Sản phẩm không có trong danh sách yêu thích");
         }
 
         wishlist.removeProduct(product);
@@ -100,7 +106,8 @@ public class WishlistServiceImpl implements WishlistService {
         log.info("Clearing wishlist for user: {}", userId);
 
         Wishlist wishlist = wishlistRepository.findByUserId(userId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy danh sách yêu thích"));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy danh sách yêu thích"));
 
         wishlist.getItems().clear();
         wishlistRepository.save(wishlist);
@@ -131,7 +138,8 @@ public class WishlistServiceImpl implements WishlistService {
         log.info("Creating new wishlist for user: {}", userId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy người dùng với ID: " + userId));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy người dùng với ID: " + userId));
 
         Wishlist wishlist = Wishlist.builder()
                 .user(user)

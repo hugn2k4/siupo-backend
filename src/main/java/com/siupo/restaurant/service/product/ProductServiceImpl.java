@@ -5,13 +5,14 @@ import com.siupo.restaurant.dto.ReviewDTO;
 import com.siupo.restaurant.dto.request.ProductRequest;
 import com.siupo.restaurant.dto.response.ProductResponse;
 import com.siupo.restaurant.enums.EProductStatus;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import com.siupo.restaurant.model.Category;
 import com.siupo.restaurant.model.ProductImage;
 import com.siupo.restaurant.model.ProductTag;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.repository.CategoryRepository;
 import com.siupo.restaurant.repository.ProductTagRepository;
-import com.siupo.restaurant.exception.ResourceNotFoundException;
 import com.siupo.restaurant.model.Product;
 import com.siupo.restaurant.repository.ProductRepository;
 import com.siupo.restaurant.repository.WishlistRepository;
@@ -131,7 +132,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductDTO getProductById(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         return toDTO(product);
     }
 
@@ -175,7 +177,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product getProductEntityById(Long id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
     }
 
     // ----------------------- DELETE -----------------------

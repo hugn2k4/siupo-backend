@@ -3,7 +3,6 @@ package com.siupo.restaurant.controller;
 import com.siupo.restaurant.dto.request.CategoryRequest;
 import com.siupo.restaurant.dto.response.CategoryResponse;
 import com.siupo.restaurant.dto.response.ApiResponse;
-import com.siupo.restaurant.dto.response.MessageDataReponse;
 import com.siupo.restaurant.service.category.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -62,7 +61,7 @@ public class CategoryController {
         categoryService.deleteCategory(id);
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
-                .code("200")
+                .code("204")
                 .message("Category deleted successfully")
                 .build();
         return ResponseEntity.ok(response);

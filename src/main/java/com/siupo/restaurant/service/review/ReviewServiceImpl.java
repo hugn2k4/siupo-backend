@@ -4,9 +4,8 @@ import com.siupo.restaurant.dto.request.CreateReviewRequest;
 import com.siupo.restaurant.dto.response.OrderReviewsResponse;
 import com.siupo.restaurant.dto.response.ReviewResponse;
 import com.siupo.restaurant.enums.EOrderStatus;
-import com.siupo.restaurant.exception.BadRequestException;
-import com.siupo.restaurant.exception.ResourceNotFoundException;
-import com.siupo.restaurant.exception.UnauthorizedException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.OrderItemRepository;
 import com.siupo.restaurant.repository.OrderRepository;
@@ -36,32 +35,38 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewResponse createReview(CreateReviewRequest request, User user) {
         // Validate request
         if (request.getOrderItemId() == null) {
-            throw new BadRequestException("Order item ID is required");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Order item ID is required");
         }
         
         if (request.getRating() == null || request.getRating() < 1 || request.getRating() > 5) {
-            throw new BadRequestException("Rating must be between 1 and 5");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Rating must be between 1 and 5");
         }
 
         // Get order item
         OrderItem orderItem = orderItemRepository.findById(request.getOrderItemId())
-                .orElseThrow(() -> new ResourceNotFoundException("Order item not found"));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Order item not found"));
 
         // Check if user owns this order
         if (orderItem.getOrder().getUser() == null || 
             !orderItem.getOrder().getUser().getId().equals(user.getId())) {
-            throw new UnauthorizedException("You can only review your own orders");
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new UnauthorizedException("You can only review your own orders");
         }
 
         // Check if order is delivered or completed
         if (orderItem.getOrder().getStatus() != EOrderStatus.DELIVERED &&
             orderItem.getOrder().getStatus() != EOrderStatus.COMPLETED) {
-            throw new BadRequestException("You can only review delivered or completed orders");
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("You can only review delivered or completed orders");
         }
 
         // Check if already reviewed
         if (orderItem.getReviewed()) {
-            throw new BadRequestException("This order item has already been reviewed");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("This order item has already been reviewed");
         }
 
         // Create review
@@ -104,17 +109,20 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewResponse getReviewByOrderItemId(Long orderItemId, User user) {
         // Get order item
         OrderItem orderItem = orderItemRepository.findById(orderItemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order item not found"));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Order item not found"));
 
         // Check if user owns this order
         if (orderItem.getOrder().getUser() == null || 
             !orderItem.getOrder().getUser().getId().equals(user.getId())) {
-            throw new UnauthorizedException("You can only view reviews for your own orders");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new UnauthorizedException("You can only view reviews for your own orders");
         }
 
         // Get review for this order item
         Review review = reviewRepository.findByOrderItemId(orderItemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review not found for this order item"));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Review not found for this order item"));
 
         return mapToReviewResponse(review);
     }
@@ -124,11 +132,13 @@ public class ReviewServiceImpl implements ReviewService {
     public OrderReviewsResponse getReviewsByOrderId(Long orderId, User user) {
         // Get order
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         // Check if user owns this order
         if (order.getUser() == null || !order.getUser().getId().equals(user.getId())) {
-            throw new UnauthorizedException("You can only view reviews for your own orders");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new UnauthorizedException("You can only view reviews for your own orders");
         }
 
         // Get all reviews for this order
@@ -158,7 +168,8 @@ public class ReviewServiceImpl implements ReviewService {
     public List<ReviewResponse> getReviewsByProductId(Long productId) {
         // Verify product exists
         productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         // Get all reviews for this product
         List<Review> reviews = reviewRepository.findByProductId(productId);

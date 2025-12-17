@@ -66,7 +66,7 @@ public class AddressController {
         addressService.deleteAddress(user, addressId);
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
-                .code("200")
+                .code("204")
                 .message("Address deleted successfully")
                 .build();
         return ResponseEntity.ok(response);

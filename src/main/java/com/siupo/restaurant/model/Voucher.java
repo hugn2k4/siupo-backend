@@ -23,51 +23,51 @@ public class Voucher {
     private Long id;
 
     @Column(nullable = false, unique = true, length = 50)
-    private String code; // Mã voucher (VD: SAVE20, FREESHIP)
+    private String code;
 
     @Column(nullable = false, length = 200)
-    private String name; // Tên voucher
+    private String name;
 
     @Column(length = 1000)
-    private String description; // Mô tả chi tiết
+    private String description;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EVoucherType type; // PERCENTAGE, FIXED_AMOUNT, FREE_SHIPPING
+    private EVoucherType type;
 
     @Column(nullable = false)
-    private Double discountValue; // Giá trị giảm (%, số tiền cố định)
+    private Double discountValue;
 
-    private Double minOrderValue; // Giá trị đơn hàng tối thiểu
+    private Double minOrderValue;
 
-    private Double maxDiscountAmount; // Số tiền giảm tối đa (cho % discount)
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer usageLimit = 0; // Số lần sử dụng tối đa (0 = unlimited)
+    private Double maxDiscountAmount;
 
     @Column(nullable = false)
     @Builder.Default
-    private Integer usedCount = 0; // Số lần đã sử dụng
-
-    private Integer usageLimitPerUser; // Giới hạn mỗi user (null = không giới hạn)
+    private Integer usageLimit = 0;
 
     @Column(nullable = false)
-    private LocalDateTime startDate; // Ngày bắt đầu
+    @Builder.Default
+    private Integer usedCount = 0;
+
+    private Integer usageLimitPerUser;
 
     @Column(nullable = false)
-    private LocalDateTime endDate; // Ngày hết hạn
+    private LocalDateTime startDate;
+
+    @Column(nullable = false)
+    private LocalDateTime endDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private EVoucherStatus status = EVoucherStatus.ACTIVE; // ACTIVE, INACTIVE, EXPIRED
+    private EVoucherStatus status = EVoucherStatus.ACTIVE;
 
     @Builder.Default
-    private Boolean isPublic = true; // true = hiển thị công khai, false = chỉ dùng với mã
+    private Boolean isPublic = true;
 
     @OneToMany(mappedBy = "voucher", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<VoucherUsage> usages; // Lịch sử sử dụng
+    private List<VoucherUsage> usages;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

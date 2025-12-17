@@ -43,7 +43,7 @@ public class Order {
     private Voucher voucher;
 
     @Builder.Default
-    private Double discountAmount = 0.0; // Số tiền giảm từ voucher
+    private Double discountAmount = 0.0;
 
     @Enumerated(EnumType.STRING)
     private EOrderStatus status;

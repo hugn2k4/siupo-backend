@@ -30,7 +30,7 @@ public class VoucherUsage {
     @JoinColumn(name = "order_id")
     private Order order;
 
-    private Double discountAmount; // Số tiền đã giảm
+    private Double discountAmount;
 
     @CreationTimestamp
     private LocalDateTime usedAt;

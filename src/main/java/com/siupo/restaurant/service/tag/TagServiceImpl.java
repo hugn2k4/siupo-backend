@@ -2,7 +2,8 @@ package com.siupo.restaurant.service.tag;
 
 import com.siupo.restaurant.dto.request.TagRequest;
 import com.siupo.restaurant.dto.response.TagResponse;
-import com.siupo.restaurant.exception.ResourceNotFoundException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import com.siupo.restaurant.model.ProductTag;
 import com.siupo.restaurant.repository.ProductTagRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,8 @@ public class TagServiceImpl implements TagService {
     @Override
     public TagResponse getTagById(Long id) {
         ProductTag tag = productTagRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Tag not found with id: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Tag not found with id: " + id));
         return mapToResponse(tag);
     }
 
@@ -51,7 +53,8 @@ public class TagServiceImpl implements TagService {
     @Override
     public TagResponse updateTag(Long id, TagRequest request) {
         ProductTag tag = productTagRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Tag not found with id: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Tag not found with id: " + id));
 
         // Check if another tag with the same name exists
         productTagRepository.findByName(request.getName())
@@ -71,7 +74,8 @@ public class TagServiceImpl implements TagService {
     @Override
     public void deleteTag(Long id) {
         ProductTag tag = productTagRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Tag not found with id: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Tag not found with id: " + id));
         productTagRepository.delete(tag);
     }
 

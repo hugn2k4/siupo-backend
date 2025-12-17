@@ -1,26 +1,20 @@
 package com.siupo.restaurant.service.user;
 
-import com.siupo.restaurant.dto.AddressDTO;
 import com.siupo.restaurant.dto.request.ChangePasswordRequest;
 import com.siupo.restaurant.dto.request.UserRequest;
 import com.siupo.restaurant.enums.EUserStatus;
-import com.siupo.restaurant.exception.BadRequestException;
-import com.siupo.restaurant.exception.NotFoundException;
-import com.siupo.restaurant.exception.UnauthorizedException;
-import com.siupo.restaurant.model.Address;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import com.siupo.restaurant.model.User;
-import com.siupo.restaurant.repository.AddressRepository;
 import com.siupo.restaurant.repository.UserRepository;
 import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.siupo.restaurant.model.Image;
-import org.springframework.transaction.annotation.Transactional;
+
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
@@ -38,7 +32,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public User getCurrentUserInfo(User user) {
-        if (user == null) throw new UnauthorizedException("User not authenticated");
+        if (user == null)
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new UnauthorizedException("User not authenticated");
 
         // Buộc Entity Avatar (LAZY) được tải trong Transaction
         if (user.getAvatar() != null) {
@@ -52,7 +48,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User updateUserInfo(User user, UserRequest request) {
-        if (user == null) throw new UnauthorizedException("User not authenticated");
+        if (user == null)
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new UnauthorizedException("User not authenticated");
 
         if (request.getFullName() != null && !request.getFullName().isBlank()) user.setFullName(request.getFullName());
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) user.setPhoneNumber(request.getPhoneNumber());
@@ -84,14 +82,19 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void changePassword(User user, ChangePasswordRequest request) {
-        if (user == null) throw new UnauthorizedException("User not authenticated");
+        if (user == null)
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new UnauthorizedException("User not authenticated");
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword()))
-            throw new BadRequestException("Mật khẩu cũ không chính xác");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Mật khẩu cũ không chính xác");
         if (!request.getNewPassword().equals(request.getConfirmNewPassword()))
-            throw new BadRequestException("Mật khẩu xác nhận không khớp");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Mật khẩu xác nhận không khớp");
         if (request.getOldPassword().equals(request.getNewPassword()))
-            throw new BadRequestException("Mật khẩu mới phải khác mật khẩu cũ");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Mật khẩu mới phải khác mật khẩu cũ");
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
@@ -106,9 +109,11 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void updateCustomerStatus(Long customerId, EUserStatus status) {
         User user = userRepository.findById(customerId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy khách hàng với ID: " + customerId));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy khách hàng với ID: " + customerId));
         if (!"CUSTOMER".equals(user.getClass().getAnnotation(DiscriminatorValue.class).value())) {
-            throw new BadRequestException("Chỉ có thể cập nhật trạng thái của CUSTOMER");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Chỉ có thể cập nhật trạng thái của CUSTOMER");
         }
 
         user.setStatus(status);
