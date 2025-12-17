@@ -1,6 +1,9 @@
 package com.siupo.restaurant.security.oauth2;
 
-import com.siupo.restaurant.security.JwtUtils;
+import com.siupo.restaurant.dto.response.LoginResponse;
+import com.siupo.restaurant.model.User;
+import com.siupo.restaurant.repository.UserRepository;
+import com.siupo.restaurant.service.token.TokenService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,7 +23,8 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final JwtUtils jwtUtils;
+    private final TokenService tokenService;
+    private final UserRepository userRepository;
     
     @Value("${oauth2.frontend.redirect-url}")
     private String frontendRedirectUrl;
@@ -39,14 +43,17 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         
         log.info("OAuth2 authentication successful for email: {}", email);
 
-        // Generate JWT tokens
-        String accessToken = jwtUtils.generateAccessToken(email);
-        String refreshToken = jwtUtils.generateRefreshToken(email);
+        // Get user from database (already created by CustomOAuth2UserService)
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found after OAuth2 authentication"));
+
+        // Generate tokens using TokenService (this saves refresh token to database)
+        LoginResponse loginResponse = tokenService.generateAuthResponse(user);
 
         // Redirect to frontend with tokens
         String targetUrl = UriComponentsBuilder.fromUriString(frontendRedirectUrl)
-                .queryParam("accessToken", accessToken)
-                .queryParam("refreshToken", refreshToken)
+                .queryParam("accessToken", loginResponse.getAccessToken())
+                .queryParam("refreshToken", loginResponse.getRefreshToken())
                 .queryParam("email", email)
                 .build()
                 .toUriString();

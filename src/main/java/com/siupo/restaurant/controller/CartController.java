@@ -45,7 +45,7 @@ public class CartController {
         CartResponse cartResponse = cartService.removeCartItem(user, itemId);
         ApiResponse<CartResponse> response = ApiResponse.<CartResponse>builder()
                 .success(true)
-                .code("200")
+                .code("204")
                 .message("Cart item removed successfully")
                 .data(cartResponse)
                 .build();

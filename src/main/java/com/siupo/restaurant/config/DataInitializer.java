@@ -9,7 +9,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
 public class DataInitializer implements CommandLineRunner {
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -35,7 +34,6 @@ public class DataInitializer implements CommandLineRunner {
                     .password(passwordEncoder.encode(defaultAdminPassword))
                     .fullName(defaultAdminFullName)
                     .build();
-
             userRepository.save(admin);
         }
     }

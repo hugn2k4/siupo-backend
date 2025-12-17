@@ -8,7 +8,7 @@ import com.siupo.restaurant.exception.business.ResourceNotFoundException;
 import com.siupo.restaurant.mapper.CartMapper;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.CartRepository;
-import com.siupo.restaurant.service.combo.ComboService;
+import com.siupo.restaurant.repository.ComboRepository;
 import com.siupo.restaurant.service.product.ProductService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +20,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CartServiceImpl implements CartService {
     private final CartRepository cartRepository;
+    private final ComboRepository comboRepository;
     private final ProductService productService;
-    private final ComboService comboService;
     private final CartMapper cartMapper;
 
     @Override
@@ -50,7 +50,8 @@ public class CartServiceImpl implements CartService {
             Product product = productService.getProductEntityById(request.getProductId());
             return addProductToCart(cart, product, request.getQuantity());
         }
-        Combo combo = comboService.getComboById(request.getComboId());
+        Combo combo = comboRepository.findById(request.getComboId())
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.COMBO_NOT_FOUND));
         return addComboToCart(cart, combo, request.getQuantity());
     }
 

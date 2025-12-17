@@ -129,10 +129,16 @@
             <version>1.39.0</version>
         </dependency>
 
-        <!--OAuth2 Client Dependency-->
+        <!-- OAuth2 Client Dependency-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
+        <!-- Redis Dependency-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
     </dependencies>
 
