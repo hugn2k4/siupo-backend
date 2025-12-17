@@ -23,7 +23,6 @@ import java.util.List;
 @RequestMapping("/api/vouchers")
 @RequiredArgsConstructor
 public class VoucherController {
-
     private final VoucherService voucherService;
 
     @GetMapping

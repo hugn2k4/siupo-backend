@@ -89,6 +89,10 @@ public enum ErrorCode {
     REGISTRATION_NOT_FOUND_OR_EXPIRED(404, "PEND_001", "Registration request not found or expired"),
     FORGOT_PASSWORD_REQUEST_NOT_FOUND_OR_EXPIRED(404, "PEND_002", "Forgot password request not found or expired"),
 
+    // ================= TAG =================
+    TAG_NOT_FOUND(404, "TAG_001", "Tag not found"),
+    TAG_ALREADY_EXISTS(409, "TAG_002", "Tag already exists"),
+
     // ================= SYSTEM =================
     INTERNAL_ERROR(500, "SYS_001", "Internal server error"),
     SERVICE_UNAVAILABLE(503, "SYS_002", "Service unavailable"),

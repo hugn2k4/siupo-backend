@@ -1,17 +1,14 @@
 package com.siupo.restaurant.controller;
 
-import com.siupo.restaurant.dto.AddressDTO;
-import com.siupo.restaurant.dto.request.AddressUpdateRequest;
 import com.siupo.restaurant.dto.request.ChangePasswordRequest;
 import com.siupo.restaurant.dto.request.UpdateCustomerStatusRequest;
 import com.siupo.restaurant.dto.request.UserRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.UserResponse;
-import com.siupo.restaurant.model.Customer;
 import com.siupo.restaurant.model.User;
-import com.siupo.restaurant.service.address.AddressService;
 import com.siupo.restaurant.service.user.UserService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,11 +18,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
 
     @GetMapping("/customer")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal User user) {
@@ -57,7 +52,6 @@ public class UserController {
     }
 
     // ==================== HELPER ====================
-
     private UserResponse mapToUserResponse(User user) {
         ImageDTO avatarDTO = null;
         if (user.getAvatar() != null) {
