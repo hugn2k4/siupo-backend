@@ -1,6 +1,6 @@
 package com.siupo.restaurant.controller;
 
-import com.siupo.restaurant.dto.VoucherDTO;
+import com.siupo.restaurant.dto.response.VoucherResponse;
 import com.siupo.restaurant.dto.request.ApplyVoucherRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.VoucherDiscountResponse;
@@ -26,109 +26,98 @@ public class VoucherController {
     private final VoucherService voucherService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<VoucherDTO>>> getPublicVouchers() {
-        List<VoucherDTO> vouchers = voucherService.getPublicVouchers();
-
-        return ResponseEntity.ok(
-                ApiResponse.<List<VoucherDTO>>builder()
-                        .success(true)
-                        .code("200")
-                        .message("Public vouchers retrieved successfully")
-                        .data(vouchers)
+    public ResponseEntity<ApiResponse<List<VoucherResponse>>> getPublicVouchers() {
+        List<VoucherResponse> vouchers = voucherService.getPublicVouchers();
+        return ResponseEntity.ok(ApiResponse.<List<VoucherResponse>>builder()
+                .success(true)
+                .code("200")
+                .message("Public vouchers retrieved successfully")
+                .data(vouchers)
                 .build());
     }
 
     @GetMapping("/available")
-    public ResponseEntity<ApiResponse<List<VoucherDTO>>> getAvailableVouchers(
+    public ResponseEntity<ApiResponse<List<VoucherResponse>>> getAvailableVouchers(
             @AuthenticationPrincipal User user) {
-        List<VoucherDTO> vouchers = voucherService.getAvailableVouchers(user);
-        return ResponseEntity.ok(
-                ApiResponse.<List<VoucherDTO>>builder()
-                        .success(true)
-                        .code("200")
-                        .message("Available vouchers retrieved successfully")
-                        .data(vouchers)
-                        .build());
+        List<VoucherResponse> vouchers = voucherService.getAvailableVouchers(user);
+        return ResponseEntity.ok(ApiResponse.<List<VoucherResponse>>builder()
+                .success(true)
+                .code("200")
+                .message("Available vouchers retrieved successfully")
+                .data(vouchers)
+                .build());
     }
 
-    /**
-     * Validate voucher and calculate discount
-     */
     @PostMapping("/validate")
     public ResponseEntity<ApiResponse<VoucherDiscountResponse>> validateVoucher(
             @Valid @RequestBody ApplyVoucherRequest request,
             @AuthenticationPrincipal User user) {
         VoucherDiscountResponse response = voucherService.validateAndCalculateDiscount(request, user);
-        return ResponseEntity.ok(
-                ApiResponse.<VoucherDiscountResponse>builder()
-                        .success(true)
-                        .code("200")
-                        .message("Voucher validated successfully")
-                        .data(response)
-                        .build());
+        return ResponseEntity.ok(ApiResponse.<VoucherDiscountResponse>builder()
+                .success(true)
+                .code("200")
+                .message("Voucher validated successfully")
+                .data(response)
+                .build());
     }
 
     /**
      * Get voucher details by code
      */
     @GetMapping("/code/{code}")
-    public ResponseEntity<ApiResponse<VoucherDTO>> getVoucherByCode(
+    public ResponseEntity<ApiResponse<VoucherResponse>> getVoucherByCode(
             @PathVariable String code,
             @AuthenticationPrincipal User user) {
-        VoucherDTO voucher = voucherService.getVoucherByCode(code, user);
-        return ResponseEntity.ok(
-                ApiResponse.<VoucherDTO>builder()
-                        .success(true)
-                        .code("200")
-                        .message("Voucher retrieved successfully")
-                        .data(voucher)
-                        .build());
+        VoucherResponse voucher = voucherService.getVoucherByCode(code, user);
+        return ResponseEntity.ok(ApiResponse.<VoucherResponse>builder()
+                .success(true)
+                .code("200")
+                .message("Voucher retrieved successfully")
+                .data(voucher)
+                .build());
     }
 
     // ========== Admin APIs ==========
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<VoucherDTO>> createVoucher(@Valid @RequestBody VoucherDTO voucherDTO) {
-        VoucherDTO created = voucherService.createVoucher(voucherDTO);
-        return ResponseEntity.ok(
-                ApiResponse.<VoucherDTO>builder()
-                        .success(true)
-                        .code("201")
-                        .message("Voucher created successfully")
-                        .data(created)
-                        .build());
+    public ResponseEntity<ApiResponse<VoucherResponse>> createVoucher(@Valid @RequestBody VoucherResponse voucherResponse) {
+        VoucherResponse created = voucherService.createVoucher(voucherResponse);
+        return ResponseEntity.ok(ApiResponse.<VoucherResponse>builder()
+                .success(true)
+                .code("201")
+                .message("Voucher created successfully")
+                .data(created)
+                .build());
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<VoucherDTO>> updateVoucher(
+    public ResponseEntity<ApiResponse<VoucherResponse>> updateVoucher(
             @PathVariable Long id,
-            @Valid @RequestBody VoucherDTO voucherDTO) {
-        VoucherDTO updated = voucherService.updateVoucher(id, voucherDTO);
-        return ResponseEntity.ok(
-                ApiResponse.<VoucherDTO>builder()
-                        .success(true)
-                        .code("200")
-                        .message("Voucher updated successfully")
-                        .data(updated)
-                        .build());
+            @Valid @RequestBody VoucherResponse voucherResponse) {
+        VoucherResponse updated = voucherService.updateVoucher(id, voucherResponse);
+        return ResponseEntity.ok(ApiResponse.<VoucherResponse>builder()
+                .success(true)
+                .code("200")
+                .message("Voucher updated successfully")
+                .data(updated)
+                .build());
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteVoucher(@PathVariable Long id) {
         voucherService.deleteVoucher(id);
-        return ResponseEntity.ok(
-                ApiResponse.<Void>builder()
-                        .success(true)
-                        .code("200")
-                        .message("Voucher deleted successfully")
-                        .build());
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .code("200")
+                .message("Voucher deleted successfully")
+                .build());
     }
 
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Page<VoucherDTO>>> getAllVouchers(
+    public ResponseEntity<ApiResponse<Page<VoucherResponse>>> getAllVouchers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -138,38 +127,36 @@ public class VoucherController {
                 Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
-        Page<VoucherDTO> vouchers = voucherService.getAllVouchers(pageable);
-        return ResponseEntity.ok(
-                ApiResponse.<Page<VoucherDTO>>builder()
-                        .success(true)
-                        .code("200")
-                        .message("Vouchers retrieved successfully")
-                        .data(vouchers)
-                        .build());
+        Page<VoucherResponse> vouchers = voucherService.getAllVouchers(pageable);
+        return ResponseEntity.ok(ApiResponse.<Page<VoucherResponse>>builder()
+                .success(true)
+                .code("200")
+                .message("Vouchers retrieved successfully")
+                .data(vouchers)
+                .build());
     }
 
+    @PostMapping("/admin/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<VoucherDTO>> getVoucherById(@PathVariable Long id) {
-        VoucherDTO voucher = voucherService.getVoucherById(id);
-        return ResponseEntity.ok(
-                ApiResponse.<VoucherDTO>builder()
-                        .success(true)
-                        .code("200")
-                        .message("Voucher retrieved successfully")
-                        .data(voucher)
-                        .build());
+    public ResponseEntity<ApiResponse<VoucherResponse>> getVoucherById(@PathVariable Long id) {
+        VoucherResponse voucher = voucherService.getVoucherById(id);
+        return ResponseEntity.ok(ApiResponse.<VoucherResponse>builder()
+                .success(true)
+                .code("200")
+                .message("Voucher retrieved successfully")
+                .data(voucher)
+                .build());
     }
 
     @PatchMapping("/{id}/toggle-status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<VoucherDTO>> toggleVoucherStatus(@PathVariable Long id) {
-        VoucherDTO voucher = voucherService.toggleVoucherStatus(id);
-        return ResponseEntity.ok(
-                ApiResponse.<VoucherDTO>builder()
-                        .success(true)
-                        .code("200")
-                        .message("Voucher status toggled successfully")
-                        .data(voucher)
-                        .build());
+    public ResponseEntity<ApiResponse<VoucherResponse>> toggleVoucherStatus(@PathVariable Long id) {
+        VoucherResponse voucher = voucherService.toggleVoucherStatus(id);
+        return ResponseEntity.ok(ApiResponse.<VoucherResponse>builder()
+                .success(true)
+                .code("200")
+                .message("Voucher status toggled successfully")
+                .data(voucher)
+                .build());
     }
 }

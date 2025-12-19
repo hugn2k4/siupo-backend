@@ -47,6 +47,9 @@ public enum ErrorCode {
     PRODUCT_NOT_FOUND(404, "PRODUCT_001", "Product not found"),
     PRODUCT_OUT_OF_STOCK(400, "PRODUCT_002", "Product out of stock"),
     PRODUCT_ALREADY_EXISTS(409, "PRODUCT_003", "Product already exists"),
+    CANNOT_CHANGE_STATUS_OF_PRODUCT(400, "PRODUCT_004", "Cannot change status of product"),
+    SEARCH_PRICE_INVALID(400, "PRODUCT_005", "Invalid price range for search"),
+    SEARCH_CATEGORY_NOT_BLANK(400, "PRODUCT_006", "Category ID list cannot be blank"),
 
     // ================= CART =================
     MISSING_SELECTION(400, "CART_001", "Missing product or combo selection"),
@@ -67,11 +70,21 @@ public enum ErrorCode {
     ORDER_NOT_FOUND(404, "ORDER_001", "Order not found"),
     ORDER_INVALID_STATUS(400, "ORDER_002", "Invalid order status"),
     ORDER_CANNOT_CANCEL(400, "ORDER_003", "Order cannot be cancelled"),
+    ORDER_ITEM_NOT_FOUND(404, "ORDER_004", "Order item not found"),
 
    // ================= VOUCHER =================
     VOUCHER_NOT_FOUND(404, "VOUCHER_001", "Voucher not found"),
     VOUCHER_EXPIRED(400, "VOUCHER_002", "Voucher has expired"),
     VOUCHER_ALREADY_USED(400, "VOUCHER_003", "Voucher has already been used"),
+    VOUCHER_ALREADY_EXISTS(409, "VOUCHER_004", "Voucher code already exists"),
+    VOUCHER_START_DATE_INVALID(400, "VOUCHER_005", "Voucher start date must be before end date"),
+    CANNOT_APPLY_VOUCHER(400, "VOUCHER_006", "Cannot apply voucher to this order"),
+    YOU_CANNOT_APPLY_VOUCHER(400, "VOUCHER_007", "You cannot apply this voucher"),
+
+    // ================= WISHLIST =================
+    WISHLIST_NOT_FOUND(404, "WISHLIST_001", "Wishlist not found"),
+    WISHLIST_CONFLICT(409, "WISHLIST_002", "Wishlist conflict"),
+    WISHLIST_ITEM_NOT_FOUND(404, "WISHLIST_003", "Wishlist item not found"),
 
     // ================= PAYMENT =================
     PAYMENT_FAILED(400, "PAYMENT_001", "Payment failed"),
@@ -96,6 +109,13 @@ public enum ErrorCode {
     // ================= TAG =================
     TAG_NOT_FOUND(404, "TAG_001", "Tag not found"),
     TAG_ALREADY_EXISTS(409, "TAG_002", "Tag already exists"),
+
+    // ================= REVIEW =================
+    REVIEW_NOT_FOUND(404, "REVIEW_001", "Review not found"),
+    REVIEW_ALREADY_EXISTS(409, "REVIEW_002", "Review for this order item already exists"),
+    STAR_RATING_OUT_OF_BOUNDS(400, "REVIEW_003", "Star rating must be between 1 and 5"),
+    CANNOT_REVIEW_OWN_ORDER(400, "REVIEW_004", "Cannot review your own order"),
+    CANNOT_REVIEW_BEFORE_DELIVERY(400, "REVIEW_005", "Can only review orders that are delivered or completed"),
 
     // ================= SYSTEM =================
     INTERNAL_ERROR(500, "SYS_001", "Internal server error"),

@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -123,6 +124,7 @@ public class OrderController {
 	// ============== ADMIN ENDPOINTS ==============
 
 	@GetMapping("/admin")
+	@PreAuthorize("hasAnyRole('ADMIN')")
 	public ResponseEntity<ApiResponse<Page<OrderDTO>>> getAllOrders(
 			@RequestParam(required = false) EOrderStatus status,
 			@RequestParam(defaultValue = "0") int page,
@@ -147,6 +149,7 @@ public class OrderController {
 	}
 
 	@GetMapping("/admin/{id}")
+	@PreAuthorize("hasAnyRole('ADMIN')")
 	public ResponseEntity<ApiResponse<OrderDTO>> getOrderDetailById(@PathVariable Long id) {
 		OrderDTO order = orderService.getOrderDetailById(id);
 
@@ -161,6 +164,7 @@ public class OrderController {
 	}
 
 	@PatchMapping("/admin/{id}/status")
+	@PreAuthorize("hasAnyRole('ADMIN')")
 	public ResponseEntity<ApiResponse<OrderDTO>> updateOrderStatus(
 			@PathVariable Long id,
 			@RequestParam EOrderStatus status) {
@@ -178,6 +182,7 @@ public class OrderController {
 	}
 
 	@DeleteMapping("/admin/{id}")
+	@PreAuthorize("hasAnyRole('ADMIN')")
 	public ResponseEntity<ApiResponse<Void>> deleteOrder(@PathVariable Long id) {
 		orderService.deleteOrder(id);
 

@@ -4,16 +4,13 @@ import com.siupo.restaurant.dto.ImageDTO;
 import com.siupo.restaurant.dto.UserDTO;
 import com.siupo.restaurant.dto.response.UserResponse;
 import com.siupo.restaurant.model.User;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class UserMapper {
-
     private final ImageMapper imageMapper;
-
-    public UserMapper(ImageMapper imageMapper) {
-        this.imageMapper = imageMapper;
-    }
 
     public UserDTO toDto(User user) {
         if (user == null) {
@@ -26,7 +23,6 @@ public class UserMapper {
                 .phoneNumber(user.getPhoneNumber())
                 .role(getUserRole(user))
                 .build();
-
         if (user.getAvatar() != null) {
             dto.setAvatar(ImageDTO.builder()
                     .id(user.getAvatar().getId())
@@ -53,5 +49,4 @@ public class UserMapper {
     private String getUserRole(User user) {
         return user.getClass().getSimpleName().toUpperCase();
     }
-
 }

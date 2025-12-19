@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         // Public routes
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/banners/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
@@ -52,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/combos/**").permitAll()
                         .requestMatchers("/api/tags/**").permitAll()
                         .requestMatchers("/api/vouchers/**").permitAll()
+                        .requestMatchers("/api/page/**").permitAll()
 
                         // Roles based access control
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

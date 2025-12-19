@@ -49,7 +49,7 @@ public class Address {
     private String province;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
     private Customer customer;
 }

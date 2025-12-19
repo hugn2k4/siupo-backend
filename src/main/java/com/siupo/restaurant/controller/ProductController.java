@@ -1,16 +1,16 @@
 package com.siupo.restaurant.controller;
 
-import com.siupo.restaurant.dto.ProductDTO;
 import com.siupo.restaurant.dto.request.ProductRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.ProductResponse;
 import com.siupo.restaurant.dto.response.ReviewResponse;
-import com.siupo.restaurant.enums.EProductStatus;
-import com.siupo.restaurant.model.Product;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.service.product.ProductService;
 import com.siupo.restaurant.service.review.ReviewService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,72 +19,63 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/products")
 public class ProductController {
-
-    @Autowired
-    private ProductService productService;
-
-    @Autowired
-    private ReviewService reviewService;
+    private final ProductService productService;
+    private final ReviewService reviewService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<ProductDTO>>> getAllProducts(
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getAllProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @AuthenticationPrincipal User user) {
-        System.out.println("User in getAllProducts: " + user);
-
-        Page<ProductDTO> productsPage = productService.getAllProductsWithWishlist(user, page, size, sortBy);
-
-        ApiResponse<Page<ProductDTO>> response = ApiResponse.<Page<ProductDTO>>builder()
+        Page<ProductResponse> productsResponse = productService.getAllProducts(user, page, size, sortBy);
+        ApiResponse<Page<ProductResponse>> response = ApiResponse.<Page<ProductResponse>>builder()
                 .success(true)
                 .code("200")
                 .message("Products retrieved successfully")
-                .data(productsPage)
+                .data(productsResponse)
                 .build();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ProductDTO>> getProductById(
+    public ResponseEntity<ApiResponse<ProductResponse>> getProductById(
             @PathVariable Long id,
             @AuthenticationPrincipal User user) {
-
-        Long userId = user != null ? user.getId() : null;
-        Product product = productService.getProductEntityById(id);
-        ProductDTO productDTO = productService.toDTOWithWishlist(product, userId);
-
-        ApiResponse<ProductDTO> response = ApiResponse.<ProductDTO>builder()
+        ProductResponse productResponse = productService.getProductById(user, id);
+        ApiResponse<ProductResponse> response = ApiResponse.<ProductResponse>builder()
                 .success(true)
                 .code("200")
                 .message("Product retrieved successfully")
-                .data(productDTO)
+                .data(productResponse)
                 .build();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<Page<ProductDTO>>> searchAndFilterProducts(
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> searchAndFilterProducts(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) List<Long> categoryIds,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "15") int size,
-            @RequestParam(defaultValue = "id,asc") String sortBy) {
-        // Kiểm tra dữ liệu đầu vào
+            @RequestParam(defaultValue = "id,asc") String sortBy,
+            @AuthenticationPrincipal User user) {
         if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
-            throw new IllegalArgumentException("minPrice phải nhỏ hơn hoặc bằng maxPrice");
+            throw new BadRequestException(ErrorCode.SEARCH_PRICE_INVALID);
         }
         if (categoryIds != null && categoryIds.isEmpty()) {
-            throw new IllegalArgumentException("Danh sách categoryIds không được rỗng");
+            throw new BadRequestException(ErrorCode.SEARCH_CATEGORY_NOT_BLANK);
         }
-
-        Page<ProductDTO> products = productService.searchAndFilterProducts(name, categoryIds, minPrice, maxPrice, page, size, sortBy);
-        String message = products.isEmpty() ? "Không tìm thấy sản phẩm nào phù hợp" : "Lọc sản phẩm thành công";
-        ApiResponse<Page<ProductDTO>> response = ApiResponse.<Page<ProductDTO>>builder()
+        Page<ProductResponse> products = productService.searchAndFilterProducts(user,name, categoryIds, minPrice, maxPrice, page, size, sortBy);
+        String message = products.isEmpty()
+                ? "No products found matching your criteria"
+                : "Products retrieved successfully";
+        ApiResponse<Page<ProductResponse>> response = ApiResponse.<Page<ProductResponse>>builder()
                 .success(true)
                 .code("200")
                 .message(message)
@@ -94,7 +85,7 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<ProductResponse>> create(@RequestBody ProductRequest request) {
+    public ResponseEntity<ApiResponse<ProductResponse>> create(@Valid @RequestBody ProductRequest request) {
         ProductResponse productResponse = productService.createProduct(request);
         ApiResponse<ProductResponse> response = ApiResponse.<ProductResponse>builder()
                 .success(true)
@@ -105,13 +96,14 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    // Sửa sản phẩm
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<ProductResponse>> update(@PathVariable Long id, @RequestBody ProductRequest request) {
+    public ResponseEntity<ApiResponse<ProductResponse>> update(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductRequest request) {
         ProductResponse productResponse = productService.updateProduct(id, request);
         ApiResponse<ProductResponse> response = ApiResponse.<ProductResponse>builder()
                 .success(true)
-                .code("200")
+                .code("202")
                 .data(productResponse)
                 .message("Product updated successfully")
                 .build();
@@ -119,24 +111,23 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteProduct(
-            @PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
         productService.deleteProductById(id);
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
-                .code("200")
+                .code("203")
                 .message("Product deleted successfully")
                 .build();
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<ApiResponse<ProductDTO>> updateProductStatus(
+    public ResponseEntity<ApiResponse<ProductResponse>> updateProductStatus(
             @PathVariable Long id) {
-        ProductDTO product = productService.updateProductStatus(id);
-        ApiResponse<ProductDTO> response = ApiResponse.<ProductDTO>builder()
+        ProductResponse product = productService.updateProductStatus(id);
+        ApiResponse<ProductResponse> response = ApiResponse.<ProductResponse>builder()
                 .success(true)
-                .code("200")
+                .code("202")
                 .data(product)
                 .message("Product status updated successfully")
                 .build();

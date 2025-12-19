@@ -16,5 +16,5 @@ public class ShopDataResponse {
     private List<CategoryResponse> categories;
     private List<ProductResponse> products;
     private List<TagResponse> tags;
-    private List<ProductWithRatingResponse> latestProducts;
+    private List<ProductResponse> latestProducts;
 }

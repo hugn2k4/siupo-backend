@@ -17,16 +17,13 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/reviews")
 @RequiredArgsConstructor
 public class ReviewController {
-
     private final ReviewService reviewService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<ReviewResponse>> createReview(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody CreateReviewRequest request) {
-
         ReviewResponse response = reviewService.createReview(request, user);
-
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<ReviewResponse>builder()
                         .code("201")
@@ -40,9 +37,7 @@ public class ReviewController {
     public ResponseEntity<ApiResponse<ReviewResponse>> getReviewByOrderItemId(
             @AuthenticationPrincipal User user,
             @PathVariable Long orderItemId) {
-
         ReviewResponse response = reviewService.getReviewByOrderItemId(orderItemId, user);
-
         return ResponseEntity.ok(
                 ApiResponse.<ReviewResponse>builder()
                         .code("200")
@@ -57,9 +52,7 @@ public class ReviewController {
     public ResponseEntity<ApiResponse<OrderReviewsResponse>> getReviewsByOrderId(
             @AuthenticationPrincipal User user,
             @PathVariable Long orderId) {
-
         OrderReviewsResponse response = reviewService.getReviewsByOrderId(orderId, user);
-
         return ResponseEntity.ok(
                 ApiResponse.<OrderReviewsResponse>builder()
                         .code("200")

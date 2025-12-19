@@ -28,13 +28,14 @@ public class AddressServiceImpl implements AddressService {
     private final AddressMapper addressMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public List<AddressResponse> getAddresses(User user) {
         Customer customer = getCustomer(user);
+        List<Address> addresses = addressRepository.findAllByCustomer(customer);
         Address defaultAddress = customer.getDefaultAddress();
-        return customer.getAddresses().stream()
+        return addresses.stream()
                 .map(address -> {
-                    if (defaultAddress != null &&
-                            defaultAddress.getId().equals(address.getId())) {
+                    if (defaultAddress != null && defaultAddress.getId().equals(address.getId())) {
                         return addressMapper.toDefaultAddressResponse(address);
                     }
                     return addressMapper.toAddressResponse(address);
@@ -54,6 +55,7 @@ public class AddressServiceImpl implements AddressService {
                 .province(address.getProvince())
                 .receiverName(address.getReceiverName())
                 .receiverPhone(address.getReceiverPhone())
+                .customer(customer)
                 .build();
         Address saved = addressRepository.save(newAddress);
         if (customer.getDefaultAddress() == null) {
