@@ -3,11 +3,12 @@ package com.siupo.restaurant.service.token;
 import com.siupo.restaurant.dto.response.LoginResponse;
 import com.siupo.restaurant.exception.base.ErrorCode;
 import com.siupo.restaurant.exception.business.UnauthorizedException;
+import com.siupo.restaurant.model.Admin;
+import com.siupo.restaurant.model.Customer;
 import com.siupo.restaurant.model.RefreshToken;
 import com.siupo.restaurant.model.User;
 import com.siupo.restaurant.repository.RefreshTokenRepository;
 import com.siupo.restaurant.security.jwt.JwtTokenProvider;
-import jakarta.persistence.DiscriminatorValue;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,7 +87,8 @@ public class TokenServiceImpl implements TokenService {
     }
 
     private String getUserRole(User user) {
-        DiscriminatorValue val = user.getClass().getAnnotation(DiscriminatorValue.class);
-        return val != null ? val.value() : user.getClass().getSimpleName().toUpperCase();
+        if (user instanceof Admin) return "ADMIN";
+        if (user instanceof Customer) return "CUSTOMER";
+        return "USER";
     }
 }

@@ -47,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/banners/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
                         .requestMatchers("/api/categories/**").permitAll()
-                        .requestMatchers("/api/place-table-for-guest/**").permitAll()
+                        .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/oauth2/**").permitAll()
                         .requestMatchers("/api/login/oauth2/**").permitAll()
                         .requestMatchers("/api/combos/**").permitAll()
