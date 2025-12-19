@@ -121,6 +121,10 @@ public enum ErrorCode {
     INTERNAL_ERROR(500, "SYS_001", "Internal server error"),
     SERVICE_UNAVAILABLE(503, "SYS_002", "Service unavailable"),
 
+    // ================= TABLE =================
+    MONEY_NOT_VALID(400, "TABLE_001", "Money amount is not valid"),
+    TABLE_NOT_FOUND(404, "TABLE_002", "Table not found"),
+
     LOI_CHUA_DAT(999, "TEST_001", "Loi chua dat");
 
     private final int httpStatus;
