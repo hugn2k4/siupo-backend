@@ -7,7 +7,8 @@ import com.siupo.restaurant.dto.request.PreOrderPaymentRequest;
 import com.siupo.restaurant.dto.response.ApiResponse;
 import com.siupo.restaurant.dto.response.MomoPaymentResponse;
 import com.siupo.restaurant.dto.response.PreOrderPaymentResponse;
-import com.siupo.restaurant.exception.BadRequestException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.HmacAlgorithms;
@@ -40,7 +41,7 @@ public class PreOrderPaymentController {
             log.info("Creating pre-order MoMo payment - amount: {}", request.getAmount());
 
             if (request.getAmount() < 1000 || request.getAmount() > 50000000) {
-                throw new BadRequestException("Số tiền không hợp lệ (1,000 - 50,000,000 VND)");
+                throw new BadRequestException(ErrorCode.MONEY_NOT_VALID);
             }
 
             String requestId = UUID.randomUUID().toString();
@@ -94,7 +95,7 @@ public class PreOrderPaymentController {
             MomoPaymentResponse momoResponse = objectMapper.readValue(response.body(), MomoPaymentResponse.class);
 
             if (momoResponse.getResultCode() != 0) {
-                throw new BadRequestException("Tạo thanh toán thất bại: " + momoResponse.getMessage());
+                throw new BadRequestException(ErrorCode.PAYMENT_FAILED);
             }
 
             PreOrderPaymentResponse paymentResponse = PreOrderPaymentResponse.builder()
@@ -112,7 +113,7 @@ public class PreOrderPaymentController {
 
         } catch (Exception e) {
             log.error("Error creating pre-order payment", e);
-            throw new BadRequestException("Lỗi: " + e.getMessage());
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
         }
     }
 

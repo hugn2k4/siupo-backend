@@ -11,9 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ApplyVoucherRequest {
-    
     @NotBlank(message = "Mã voucher không được để trống")
     private String voucherCode;
     
-    private Double orderAmount; // Tổng tiền đơn hàng hiện tại
+    private Double orderAmount;
 }

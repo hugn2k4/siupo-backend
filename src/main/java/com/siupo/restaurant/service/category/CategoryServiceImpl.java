@@ -1,12 +1,15 @@
 package com.siupo.restaurant.service.category;
 
-import com.siupo.restaurant.dto.CategoryDTO;
-import com.siupo.restaurant.dto.ImageDTO;
-import com.siupo.restaurant.dto.response.MessageDataReponse;
+import com.siupo.restaurant.dto.request.CategoryRequest;
+import com.siupo.restaurant.dto.response.CategoryResponse;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
+import com.siupo.restaurant.exception.business.ResourceNotFoundException;
+import com.siupo.restaurant.mapper.CategoryMapper;
 import com.siupo.restaurant.model.Category;
-import com.siupo.restaurant.model.Image;
 import com.siupo.restaurant.repository.CategoryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,90 +18,44 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
-
-    @Autowired
-    private CategoryRepository categoryRepository;
-    private Category findCategoryById(Long id) {
-        return categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category không tồn tại với ID: " + id));
-    }
-
-    private CategoryDTO mapToDTO(Category category) {
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(category.getId());
-        dto.setName(category.getName());
-
-        if (category.getImage() != null) {
-            ImageDTO imageDTO = ImageDTO.builder()
-                    .id(category.getImage().getId())
-                    .url(category.getImage().getUrl())
-                    .name(category.getImage().getName())
-                    .build();
-            dto.setImage(imageDTO);
-        }
-        return dto;
-    }
+    private final CategoryRepository categoryRepository;
+    private final CategoryMapper categoryMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryDTO> getAllCategories() {
+    public List<CategoryResponse> getAllCategories() {
         return categoryRepository.findAll().stream()
-                .map(this::mapToDTO) // Dùng helper mới
+                .map(categoryMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public CategoryDTO addCategory(CategoryDTO categoryDTO) {
-        Image image = Image.builder()
-                .name(categoryDTO.getImageName())
-                .url(categoryDTO.getImageUrl())
-                .build();
-
-        Category category = Category.builder()
-                .name(categoryDTO.getName())
-                .image(image)
-                .build();
-
+    public CategoryResponse addCategory(CategoryRequest categoryRequest) {
+        Category category = categoryMapper.toEntity(categoryMapper.requestToResponse(categoryRequest));
         Category savedCategory = categoryRepository.save(category);
-
-        return mapToDTO(savedCategory);
+        return categoryMapper.toResponse(savedCategory);
     }
 
     @Override
-    public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
-        Category category = findCategoryById(id);
-
-        category.setName(categoryDTO.getName());
-
-        Image existingImage = category.getImage();
-        if (existingImage == null) {
-            existingImage = Image.builder().build();
-            category.setImage(existingImage);
-        }
-        existingImage.setName(categoryDTO.getImageName());
-        existingImage.setUrl(categoryDTO.getImageUrl());
-
+    public CategoryResponse updateCategory(Long id, CategoryRequest categoryRequest) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CATEGORY_NOT_FOUND));
+        categoryMapper.updateCategoryFromRequest(category, categoryRequest);
         Category updatedCategory = categoryRepository.save(category);
-
-        return mapToDTO(updatedCategory);
+        return categoryMapper.toResponse(updatedCategory);
     }
 
     @Override
-    public MessageDataReponse deleteCategory(Long id) {
+    public void deleteCategory(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CATEGORY_NOT_EMPTY));
         try {
-            Category category = findCategoryById(id);
             categoryRepository.delete(category);
-            return new MessageDataReponse(true, "200", "Xóa danh mục thành công");
-
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            return new MessageDataReponse(false, "400", "Không thể xóa danh mục này vì đang được sử dụng trong sản phẩm");
-
-        } catch (RuntimeException e) {
-            return new MessageDataReponse(false, "404", "Không tìm thấy danh mục với ID: " + id);
-
-        } catch (Exception e) {
-            return new MessageDataReponse(false, "500", "Đã xảy ra lỗi khi xóa danh mục: " + e.getMessage());
+            categoryRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new BadRequestException(ErrorCode.CANNOT_DELETE_CATEGORY);
         }
     }
 }

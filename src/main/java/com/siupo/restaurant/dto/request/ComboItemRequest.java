@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ComboItemRequest {
-    
     @NotNull(message = "ID sản phẩm không được để trống")
     private Long productId;
     

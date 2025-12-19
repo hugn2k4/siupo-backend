@@ -13,7 +13,7 @@ public class VoucherDiscountResponse {
     private Long voucherId;
     private String voucherCode;
     private String voucherName;
-    private Double discountAmount; // Số tiền được giảm
-    private Double finalAmount; // Tổng tiền sau giảm
+    private Double discountAmount;
+    private Double finalAmount;
     private String message;
 }

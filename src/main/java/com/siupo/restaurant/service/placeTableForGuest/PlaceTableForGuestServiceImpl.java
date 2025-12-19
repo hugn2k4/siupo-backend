@@ -3,8 +3,8 @@ package com.siupo.restaurant.service.placeTableForGuest;
 import com.siupo.restaurant.dto.request.PlaceTableForGuestRequest;
 import com.siupo.restaurant.dto.response.PlaceTableForGuestResponse;
 import com.siupo.restaurant.enums.EPlaceTableStatus;
-import com.siupo.restaurant.exception.BadRequestException;
-import com.siupo.restaurant.exception.InvalidTimeException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import com.siupo.restaurant.model.PlaceTableForGuest;
 import com.siupo.restaurant.repository.PlaceTableForGuestRepository;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +62,8 @@ public class PlaceTableForGuestServiceImpl implements PlaceTableForGuestService 
                     .build();
         } catch (Exception e) {
             log.error("Error saving place table request: {}", e.getMessage(), e);
-            throw new BadRequestException("Không thể gửi yêu cầu, vui lòng thử lại sau");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Không thể gửi yêu cầu, vui lòng thử lại sau");
         }
     }
 
@@ -70,29 +71,34 @@ public class PlaceTableForGuestServiceImpl implements PlaceTableForGuestService 
         LocalDateTime now = LocalDateTime.now();
 
         if (startedAt.isBefore(now)) {
-            throw new InvalidTimeException("Thời gian đặt bàn phải là thời điểm trong tương lai");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new InvalidTimeException("Thời gian đặt bàn phải là thời điểm trong tương lai");
         }
 
         // Validate booking time is within business hours (8:00 - 22:00)
         int hour = startedAt.getHour();
         if (hour < 8 || hour >= 22) {
-            throw new InvalidTimeException("Thời gian đặt bàn phải trong khung giờ hoạt động (8:00 - 22:00)");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new InvalidTimeException("Thời gian đặt bàn phải trong khung giờ hoạt động (8:00 - 22:00)");
         }
 
         // Optional: Validate advance booking (e.g., at least 1 hour in advance)
         LocalDateTime minimumBookingTime = now.plusHours(1);
         if (startedAt.isBefore(minimumBookingTime)) {
-            throw new InvalidTimeException("Vui lòng đặt bàn trước ít nhất 1 giờ");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new InvalidTimeException("Vui lòng đặt bàn trước ít nhất 1 giờ");
         }
     }
 
     private void validateMemberCount(Integer memberInt) {
         if (memberInt == null || memberInt <= 0) {
-            throw new BadRequestException("Số lượng khách phải lớn hơn 0");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Số lượng khách phải lớn hơn 0");
         }
 
         if (memberInt > 50) {
-            throw new BadRequestException("Số lượng khách không được vượt quá 50 người, vui lòng liên hệ trực tiếp");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Số lượng khách không được vượt quá 50 người, vui lòng liên hệ trực tiếp");
         }
     }
 }

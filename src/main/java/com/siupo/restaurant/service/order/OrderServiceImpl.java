@@ -8,8 +8,9 @@ import com.siupo.restaurant.dto.response.*;
 import com.siupo.restaurant.enums.EOrderStatus;
 import com.siupo.restaurant.enums.EPaymentMethod;
 import com.siupo.restaurant.enums.EPaymentStatus;
-import com.siupo.restaurant.exception.BadRequestException;
-import com.siupo.restaurant.exception.NotFoundException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
+import com.siupo.restaurant.exception.business.NotFoundException;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.*;
 import com.siupo.restaurant.service.payment.MomoPaymentService;
@@ -41,15 +42,18 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequest request, User user) {
         Cart cart = cartRepository.findByUser(user)
-                .orElseThrow(() -> new BadRequestException("Giỏ hàng trống"));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new BadRequestException("Giỏ hàng trống"));
 
         List<CartItem> cartItems = cartItemRepository.findByCart(cart);
         if (cartItems.isEmpty()) {
-            throw new BadRequestException("Giỏ hàng trống");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Giỏ hàng trống");
         }
 
         if (request.getItems() == null || request.getItems().isEmpty()) {
-            throw new BadRequestException("Danh sách sản phẩm đặt hàng không được để trống");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Danh sách sản phẩm đặt hàng không được để trống");
         }
 
         // Kiểm tra sản phẩm/combo request có trong cart
@@ -77,15 +81,18 @@ public class OrderServiceImpl implements OrderService {
             }
 
             if (ci == null) {
-                throw new BadRequestException("Sản phẩm/Combo không tồn tại trong giỏ hàng");
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Sản phẩm/Combo không tồn tại trong giỏ hàng");
             }
 
             if (item.getQuantity() == null || item.getQuantity() <= 0) {
-                throw new BadRequestException("Số lượng không hợp lệ");
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Số lượng không hợp lệ");
             }
 
             if (!item.getQuantity().equals(ci.getQuantity())) {
-                throw new BadRequestException("Số lượng " + itemName + " không khớp");
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Số lượng " + itemName + " không khớp");
             }
         }
 
@@ -158,15 +165,17 @@ public class OrderServiceImpl implements OrderService {
                 
                 // Validate voucher before applying
                 if (!voucherService.canUserUseVoucher(appliedVoucher, user)) {
-                    throw new BadRequestException("Bạn không thể sử dụng voucher này");
+                    throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                    throw new BadRequestException("Bạn không thể sử dụng voucher này");
                 }
                 
                 // Check minimum order value
                 if (appliedVoucher.getMinOrderValue() != null && total < appliedVoucher.getMinOrderValue()) {
-                    throw new BadRequestException(
-                        String.format("Đơn hàng tối thiểu phải từ %.0f VND để sử dụng voucher này", 
-                            appliedVoucher.getMinOrderValue())
-                    );
+                    throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                    throw new BadRequestException(
+//                        String.format("Đơn hàng tối thiểu phải từ %.0f VND để sử dụng voucher này",
+//                            appliedVoucher.getMinOrderValue())
+//                    );
                 }
                 
                 // Calculate discount based on voucher type
@@ -196,7 +205,8 @@ public class OrderServiceImpl implements OrderService {
                 
                 log.info("Applied voucher {} with discount {} for order", appliedVoucher.getCode(), discountAmount);
             } catch (NotFoundException e) {
-                throw new BadRequestException("Voucher không hợp lệ: " + request.getVoucherCode());
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Voucher không hợp lệ: " + request.getVoucherCode());
             }
         }
 
@@ -257,7 +267,8 @@ public class OrderServiceImpl implements OrderService {
             return paymentRepository.save(momo);
         }
 
-        throw new BadRequestException("Phương thức thanh toán không hợp lệ");
+        throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//        throw new BadRequestException("Phương thức thanh toán không hợp lệ");
     }
 
     private CreateOrderResponse buildCreateOrderResponse(Order order, CreateOrderRequest request) {
@@ -297,10 +308,12 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public CreateOrderResponse getOrderById(Long id, User user) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
 
         if (!order.getUser().getId().equals(user.getId())) {
-            throw new BadRequestException("Bạn không có quyền xem đơn hàng này");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Bạn không có quyền xem đơn hàng này");
         }
 
         return buildCreateOrderResponse(order, null);
@@ -320,18 +333,21 @@ public class OrderServiceImpl implements OrderService {
     public OrderDTO cancelOrderByCustomer(Long id, User user) {
 
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
 
         // Check quyền sở hữu đơn
         if (!order.getUser().getId().equals(user.getId())) {
-            throw new BadRequestException("Bạn không có quyền hủy đơn hàng này");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Bạn không có quyền hủy đơn hàng này");
         }
 
         // Check trạng thái cho phép hủy
         if (!(order.getStatus() == EOrderStatus.PENDING ||
                 order.getStatus() == EOrderStatus.CONFIRMED ||
                 order.getStatus() == EOrderStatus.WAITING_FOR_PAYMENT)) {
-            throw new BadRequestException("Đơn hàng không thể hủy ở trạng thái hiện tại");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Đơn hàng không thể hủy ở trạng thái hiện tại");
         }
 
         // Xử lý thanh toán nếu là Momo
@@ -370,7 +386,8 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public OrderDTO getOrderDetailById(Long id) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
         return OrderDTO.toDTO(order);
     }
 
@@ -378,11 +395,13 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderDTO updateOrderStatus(Long id, EOrderStatus newStatus) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
 
         // Validate status transition
         if (!isValidStatusTransition(order.getStatus(), newStatus)) {
-            throw new BadRequestException("Không thể chuyển trạng thái từ " + order.getStatus() + " sang " + newStatus);
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Không thể chuyển trạng thái từ " + order.getStatus() + " sang " + newStatus);
         }
 
         order.setStatus(newStatus);
@@ -395,11 +414,13 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public boolean deleteOrder(Long id) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
 
         // Only allow deletion of canceled orders
         if (order.getStatus() != EOrderStatus.CANCELED) {
-            throw new BadRequestException("Chỉ có thể xóa đơn hàng đã bị hủy");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Chỉ có thể xóa đơn hàng đã bị hủy");
         }
 
         orderRepository.delete(order);

@@ -15,7 +15,6 @@ import java.util.List;
 @RequestMapping("/api/banners")
 @RequiredArgsConstructor
 public class BannerController {
-
     private final BannerService bannerService;
 
     @GetMapping

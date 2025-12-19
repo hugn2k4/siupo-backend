@@ -7,7 +7,8 @@ import com.siupo.restaurant.dto.request.MomoPaymentRequest;
 import com.siupo.restaurant.dto.response.MomoPaymentResponse;
 import com.siupo.restaurant.enums.EOrderStatus;
 import com.siupo.restaurant.enums.EPaymentStatus;
-import com.siupo.restaurant.exception.BadRequestException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import com.siupo.restaurant.model.MomoPayment;
 import com.siupo.restaurant.model.Order;
 import com.siupo.restaurant.repository.OrderRepository;
@@ -55,7 +56,8 @@ public class MomoPaymentServiceImpl implements MomoPaymentService {
                 amountInVND = 1000; // Set minimum amount cho test
             }
             if (amountInVND > 50000000) {
-                throw new BadRequestException("Số tiền vượt quá giới hạn 50,000,000 VND");
+                throw  new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Số tiền vượt quá giới hạn 50,000,000 VND");
             }
             
             String amount = String.valueOf(amountInVND);
@@ -119,7 +121,8 @@ public class MomoPaymentServiceImpl implements MomoPaymentService {
 
             if (momoResponse.getResultCode() != 0) {
                 log.error("MoMo payment creation failed: {} - {}", momoResponse.getResultCode(), momoResponse.getMessage());
-                throw new BadRequestException("Tạo thanh toán MoMo thất bại: " + momoResponse.getMessage());
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Tạo thanh toán MoMo thất bại: " + momoResponse.getMessage());
             }
 
             // Lưu thông tin requestId vào payment
@@ -133,7 +136,8 @@ public class MomoPaymentServiceImpl implements MomoPaymentService {
 
         } catch (Exception e) {
             log.error("Error creating MoMo payment", e);
-            throw new BadRequestException("Lỗi khi tạo thanh toán MoMo: " + e.getMessage());
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Lỗi khi tạo thanh toán MoMo: " + e.getMessage());
         }
     }
 
@@ -167,7 +171,8 @@ public class MomoPaymentServiceImpl implements MomoPaymentService {
             String orderIdStr = ipnRequest.getOrderId().replace("ORDER_", "");
             Long orderId = Long.parseLong(orderIdStr);
             Order order = orderRepository.findById(orderId)
-                    .orElseThrow(() -> new BadRequestException("Không tìm thấy đơn hàng"));
+                    .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                    .orElseThrow(() -> new BadRequestException("Không tìm thấy đơn hàng"));
 
             // Kiểm tra resultCode
             if (ipnRequest.getResultCode() == 0) {

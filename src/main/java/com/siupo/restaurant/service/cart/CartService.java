@@ -1,14 +1,12 @@
 package com.siupo.restaurant.service.cart;
 
 import com.siupo.restaurant.dto.request.AddToCartRequest;
-import com.siupo.restaurant.model.Cart;
-import com.siupo.restaurant.model.Product;
+import com.siupo.restaurant.dto.response.CartResponse;
 import com.siupo.restaurant.model.User;
 
 public interface CartService {
-    Cart getCartByUser(User user);
-    Cart addItemToCart(User user, AddToCartRequest request);
-    Cart updateItemQuantity(User user, Long itemId, Long quantity);
-    Cart removeCartItem(User user, Long itemId);
-//    void clearCart(User user);
+    CartResponse getCartByUser(User user);
+    CartResponse addItemToCart(User user, AddToCartRequest request);
+    CartResponse updateItemQuantity(User user, Long itemId, Long quantity);
+    CartResponse removeCartItem(User user, Long itemId);
 }

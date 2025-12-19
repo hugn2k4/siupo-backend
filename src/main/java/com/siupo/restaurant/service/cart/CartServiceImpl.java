@@ -1,110 +1,135 @@
 package com.siupo.restaurant.service.cart;
 
 import com.siupo.restaurant.dto.request.AddToCartRequest;
-import com.siupo.restaurant.exception.BadRequestException;
+import com.siupo.restaurant.dto.response.CartResponse;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
+import com.siupo.restaurant.exception.business.ResourceNotFoundException;
+import com.siupo.restaurant.mapper.CartMapper;
 import com.siupo.restaurant.model.*;
-import com.siupo.restaurant.repository.CartItemRepository;
 import com.siupo.restaurant.repository.CartRepository;
-import com.siupo.restaurant.service.combo.ComboService;
+import com.siupo.restaurant.repository.ComboRepository;
 import com.siupo.restaurant.service.product.ProductService;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class CartServiceImpl implements CartService {
     private final CartRepository cartRepository;
-    private final CartItemRepository cartItemRepository;
+    private final ComboRepository comboRepository;
     private final ProductService productService;
-    private final ComboService comboService;
+    private final CartMapper cartMapper;
 
-    public CartServiceImpl(CartRepository cartRepository, CartItemRepository cartItemRepository, ProductService productService, ComboService comboService) {
-        this.cartRepository = cartRepository;
-        this.cartItemRepository = cartItemRepository;
-        this.productService = productService;
-        this.comboService = comboService;
+    @Override
+    @Transactional
+    public CartResponse getCartByUser(User user) {
+        Cart cart = getOrCreateCartEntity(user);
+        return cartMapper.toResponse(cart);
     }
 
     @Override
-    public Cart getCartByUser(User user) {
-        Cart cart = cartRepository.findByUser(user).orElseGet(() -> {
+    @Transactional
+    public CartResponse addItemToCart(User user, AddToCartRequest request) {
+        boolean hasProduct = request.getProductId() != null;
+        boolean hasCombo = request.getComboId() != null;
+        if (!hasProduct && !hasCombo) {
+            throw new BadRequestException(ErrorCode.MISSING_SELECTION);
+        }
+        if (hasProduct && hasCombo) {
+            throw new BadRequestException(ErrorCode.CONFLICTING_SELECTION);
+        }
+        if (request.getQuantity() <= 0) {
+            throw new BadRequestException(ErrorCode.INVALID_QUANTITY);
+        }
+        Cart cart = getOrCreateCartEntity(user);
+        if (hasProduct) {
+            Product product = productService.getProductEntityById(request.getProductId());
+            return addProductToCart(cart, product, request.getQuantity());
+        }
+        Combo combo = comboRepository.findById(request.getComboId())
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.COMBO_NOT_FOUND));
+        return addComboToCart(cart, combo, request.getQuantity());
+    }
+
+    @Override
+    @Transactional
+    public CartResponse updateItemQuantity(User user, Long itemId, Long quantity) {
+        Cart cart = getOrCreateCartEntity(user);
+        Optional<CartItem> itemOpt = cart.getItems().stream()
+                .filter(item -> item.getId().equals(itemId))
+                .findFirst();
+        if (itemOpt.isEmpty()) {
+            throw new ResourceNotFoundException(ErrorCode.CART_ITEM_NOT_FOUND);
+        }
+        CartItem cartItem = itemOpt.get();
+        if (quantity <= 0) {
+            cart.getItems().remove(cartItem);
+        } else {
+            cartItem.setQuantity(quantity);
+            double unitPrice = (cartItem.getProduct() != null)
+                    ? cartItem.getProduct().getPrice()
+                    : cartItem.getCombo().getBasePrice();
+            cartItem.setPrice(unitPrice * quantity);
+        }
+        return updateCartAndReturnResponse(cart);
+    }
+
+    @Override
+    @Transactional
+    public CartResponse removeCartItem(User user, Long itemId) {
+        Cart cart = getOrCreateCartEntity(user);
+        CartItem itemToRemove = cart.getItems().stream()
+                .filter(item -> item.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CART_ITEM_NOT_FOUND));
+        cart.getItems().remove(itemToRemove);
+        return updateCartAndReturnResponse(cart);
+    }
+
+    // ==================== Private Helper Methods ====================
+
+    private Cart getOrCreateCartEntity(User user) {
+        return cartRepository.findByUser(user).orElseGet(() -> {
             Cart newCart = new Cart();
             newCart.setUser(user);
             return cartRepository.save(newCart);
         });
-
-        Collections.reverse(cart.getItems());
-        return cart;
     }
 
-    @Override
-    public Cart addItemToCart(User user, AddToCartRequest request) {
-        if (request.getProductId() == null && request.getComboId() == null) {
-            throw new BadRequestException("Either productId or comboId is required");
-        }
-
-        if (request.getProductId() != null && request.getComboId() != null) {
-            throw new BadRequestException("Only one of productId or comboId should be provided");
-        }
-        Cart cart = getCartByUser(user);
-
-        if (request.getProductId() != null) {
-            Product product = productService.getProductEntityById(request.getProductId());
-            return addProductToCart(cart, product, request.getQuantity());
-        }
-
-        if (request.getComboId() != null) {
-            Combo combo = comboService.getComboById(request.getComboId());
-            return addComboToCart(cart, combo, request.getQuantity());
-        }
-        throw new BadRequestException("Either productId or comboId must be provided.");
-    }
-
-    private Cart addProductToCart(Cart cart, Product item, int quantity) {
-        Optional<CartItem> existingCartItem = cart.getItems().stream()
-                .filter(ci -> ci.getProduct() != null)
-                .filter(ci -> ci.getProduct().getId().equals(item.getId()))
+    private CartResponse addProductToCart(Cart cart, Product product, int quantity) {
+        Optional<CartItem> existingItem = cart.getItems().stream()
+                .filter(item -> item.getProduct() != null)
+                .filter(item -> item.getProduct().getId().equals(product.getId()))
                 .findFirst();
-        if (existingCartItem.isPresent()) {
-            CartItem cartItem = existingCartItem.get();
-            cartItem.setQuantity(cartItem.getQuantity() + quantity);
-            cartItem.setPrice(item.getPrice() * cartItem.getQuantity());
+        if (existingItem.isPresent()) {
+            CartItem item = existingItem.get();
+            item.setQuantity(item.getQuantity() + quantity);
+            item.setPrice(product.getPrice() * item.getQuantity());
         } else {
-            CartItem cartItem = CartItem.builder()
+            CartItem newItem = CartItem.builder()
                     .cart(cart)
-                    .product(item)
+                    .product(product)
                     .quantity((long) quantity)
-                    .price(item.getPrice() * quantity)
+                    .price(product.getPrice() * quantity)
                     .build();
-
-            cart.getItems().add(cartItem);
+            cart.getItems().add(newItem);
         }
-
-        cart.setTotalPrice(
-                cart.getItems().stream()
-                        .mapToDouble(CartItem::getPrice)
-                        .sum()
-        );
-
-        return cartRepository.save(cart);
+        return updateCartAndReturnResponse(cart);
     }
 
-
-    private Cart addComboToCart(Cart cart, Combo combo, int quantity) {
-
-        Optional<CartItem> existing = cart.getItems().stream()
-                .filter(i -> i.getCombo() != null)
-                .filter(i -> i.getCombo().getId().equals(combo.getId()))
+    private CartResponse addComboToCart(Cart cart, Combo combo, int quantity) {
+        Optional<CartItem> existingItem = cart.getItems().stream()
+                .filter(item -> item.getCombo() != null)
+                .filter(item -> item.getCombo().getId().equals(combo.getId()))
                 .findFirst();
-
-        if (existing.isPresent()) {
-            CartItem cartItem = existing.get();
-            cartItem.setQuantity(cartItem.getQuantity() + quantity);
-            cartItem.setPrice(combo.getBasePrice() * cartItem.getQuantity());
+        if (existingItem.isPresent()) {
+            CartItem item = existingItem.get();
+            item.setQuantity(item.getQuantity() + quantity);
+            item.setPrice(combo.getBasePrice() * item.getQuantity());
         } else {
             CartItem newItem = CartItem.builder()
                     .cart(cart)
@@ -112,76 +137,17 @@ public class CartServiceImpl implements CartService {
                     .quantity((long) quantity)
                     .price(combo.getBasePrice() * quantity)
                     .build();
-
             cart.getItems().add(newItem);
         }
-
-        cart.setTotalPrice(
-                cart.getItems().stream()
-                        .mapToDouble(CartItem::getPrice)
-                        .sum()
-        );
-
-        return cartRepository.save(cart);
+        return updateCartAndReturnResponse(cart);
     }
 
-    @Override
-    public Cart updateItemQuantity(User user, Long itemId, Long quantity) {
-        Cart cart = getCartByUser(user);
-
-        List<CartItem> cartItems = cartItemRepository.findByCart(cart);
-
-        for (Iterator<CartItem> iterator = cartItems.iterator(); iterator.hasNext(); ) {
-            CartItem cartItem = iterator.next();
-
-            if (cartItem.getId().equals(itemId)) {
-                if (quantity <= 0) {
-                    iterator.remove();
-                    cartItemRepository.delete(cartItem);
-                } else {
-                    cartItem.setQuantity(quantity);
-                    // FIX: kiểm tra loại item
-                    if (cartItem.getProduct() != null) {
-                        cartItem.setPrice(cartItem.getProduct().getPrice() * quantity);
-                    } else if (cartItem.getCombo() != null) {
-                        cartItem.setPrice(cartItem.getCombo().getBasePrice() * quantity);
-                    }
-                    cartItemRepository.save(cartItem);
-                }
-                break;
-            }
-        }
-
-        double totalPrice = cartItems.stream()
+    private CartResponse updateCartAndReturnResponse(Cart cart) {
+        double totalCartPrice = cart.getItems().stream()
                 .mapToDouble(CartItem::getPrice)
                 .sum();
-
-        cart.setTotalPrice(totalPrice);
-        return cartRepository.save(cart);
-    }
-
-    @Override
-    public Cart removeCartItem(User user, Long itemId) {
-        Cart cart = getCartByUser(user);
-
-        // Tìm và xóa cart item
-        CartItem itemToRemove = cart.getItems().stream()
-                .filter(item -> item.getId().equals(itemId))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Cart item not found"));
-
-        // Xóa khỏi collection của cart
-        cart.getItems().remove(itemToRemove);
-        
-        // Xóa khỏi database
-        cartItemRepository.delete(itemToRemove);
-
-        // Tính lại tổng giá từ các items còn lại
-        double totalPrice = cart.getItems().stream()
-                .mapToDouble(CartItem::getPrice)
-                .sum();
-
-        cart.setTotalPrice(totalPrice);
-        return cartRepository.save(cart);
+        cart.setTotalPrice(totalCartPrice);
+        Cart savedCart = cartRepository.save(cart);
+        return cartMapper.toResponse(savedCart);
     }
 }

@@ -19,11 +19,14 @@ public class OrderAtTable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @OneToMany(mappedBy = "orderAtTable", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items;
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "table_id", nullable = false)
     private TableEntity table;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 }

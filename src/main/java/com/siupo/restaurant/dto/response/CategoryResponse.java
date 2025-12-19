@@ -1,9 +1,12 @@
-package com.siupo.restaurant.dto;
+package com.siupo.restaurant.dto.response;
 
+import com.siupo.restaurant.dto.ImageDTO;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
-public class CategoryDTO {
+@Builder
+public class CategoryResponse {
     private Long id;
     private String name;
     private String imageUrl;

@@ -13,5 +13,5 @@ public class WishlistItemResponse {
     private String productName;
     private String productDescription;
     private Double productPrice;
-    private List<String> productImages; // ✅ đổi sang list
+    private List<String> productImages;
 }

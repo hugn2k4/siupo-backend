@@ -4,7 +4,9 @@ import com.siupo.restaurant.dto.request.ComboItemRequest;
 import com.siupo.restaurant.dto.request.CreateComboRequest;
 import com.siupo.restaurant.dto.response.ComboResponse;
 import com.siupo.restaurant.enums.EProductStatus;
-import com.siupo.restaurant.exception.ResourceNotFoundException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
+import com.siupo.restaurant.exception.business.ResourceNotFoundException;
 import com.siupo.restaurant.mapper.ComboMapper;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.ComboItemRepository;
@@ -14,14 +16,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ComboServiceImpl implements ComboService {
-    
     private final ComboRepository comboRepository;
     private final ComboItemRepository comboItemRepository;
     private final ProductRepository productRepository;
@@ -29,64 +30,54 @@ public class ComboServiceImpl implements ComboService {
 
     @Override
     @Transactional
-    public Combo createCombo(CreateComboRequest request) {
-        // Create Combo entity
-        Combo combo = Combo.builder()
-                .name(request.getName())
-                .description(request.getDescription())
-                .basePrice(request.getBasePrice())
-                .status(EProductStatus.AVAILABLE)
-                .build();
-        
-        // Save combo first to get ID
-        combo = comboRepository.save(combo);
-        
-        // Create images
+    public ComboResponse createCombo(CreateComboRequest request) {
+        Combo comboInit = comboMapper.toEntity(request);
+        Combo comboToUse = comboRepository.save(comboInit);
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
-            List<ComboImage> images = new ArrayList<>();
-            for (String url : request.getImageUrls()) {
-                ComboImage image = ComboImage.builder()
-                        .url(url)
-                        .combo(combo)
-                        .build();
-                images.add(image);
+            List<ComboImage> images = request.getImageUrls().stream()
+                    .map(url -> ComboImage.builder()
+                            .url(url)
+                            .combo(comboToUse)
+                            .build())
+                    .collect(Collectors.toList());
+            comboToUse.setImages(images);
+        }
+        if (request.getItems() != null && !request.getItems().isEmpty()) {
+            List<Long> productIds = request.getItems().stream()
+                    .map(ComboItemRequest::getProductId)
+                    .collect(Collectors.toList());
+            List<Product> products = productRepository.findAllById(productIds);
+            if (products.size() != productIds.stream().distinct().count()) {
+                throw new ResourceNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
             }
-            combo.setImages(images);
+            Map<Long, Product> productMap = products.stream()
+                    .collect(Collectors.toMap(Product::getId, p -> p));
+            final Combo finalComboRef = comboToUse;
+            List<ComboItem> comboItems = request.getItems().stream()
+                    .map(itemRequest -> {
+                        Product product = productMap.get(itemRequest.getProductId());
+                        return ComboItem.builder()
+                                .combo(finalComboRef)
+                                .product(product)
+                                .quantity(itemRequest.getQuantity())
+                                .displayOrder(itemRequest.getDisplayOrder() != null ? itemRequest.getDisplayOrder() : 0)
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+            comboToUse.setItems(comboItems);
         }
-        
-        // Create combo items
-        List<ComboItem> items = new ArrayList<>();
-        for (ComboItemRequest itemRequest : request.getItems()) {
-            Product product = productRepository.findById(itemRequest.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Không tìm thấy sản phẩm với ID: " + itemRequest.getProductId()));
-            
-            ComboItem item = ComboItem.builder()
-                    .combo(combo)
-                    .product(product)
-                    .quantity(itemRequest.getQuantity())
-                    .displayOrder(itemRequest.getDisplayOrder() != null ? itemRequest.getDisplayOrder() : 0)
-                    .build();
-            
-            items.add(item);
-        }
-        
-        // Save all items
-        items = comboItemRepository.saveAll(items);
-        combo.setItems(items);
-        combo = comboRepository.save(combo);
-        
-        return combo;
+        Combo savedCombo = comboRepository.save(comboToUse);
+        return comboMapper.toResponse(savedCombo);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Combo getComboById(Long id) {
+    public ComboResponse getComboById(Long id) {
         Combo combo = comboRepository.findByIdWithItems(id);
         if (combo == null) {
-            throw new ResourceNotFoundException("Không tìm thấy combo với ID: " + id);
+            throw new ResourceNotFoundException(ErrorCode.COMBO_NOT_FOUND);
         }
-        return combo;
+        return comboMapper.toResponse(combo);
     }
 
     @Override
@@ -110,86 +101,76 @@ public class ComboServiceImpl implements ComboService {
 
     @Override
     @Transactional
-    public Combo updateCombo(Long id, CreateComboRequest request) {
+    public ComboResponse updateCombo(Long id, CreateComboRequest request) {
         Combo combo = comboRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy combo với ID: " + id));
-        
-        // Update basic info
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.COMBO_NOT_FOUND));
         combo.setName(request.getName());
         combo.setDescription(request.getDescription());
         combo.setBasePrice(request.getBasePrice());
-        
-        // Delete old items
-        if (combo.getItems() != null) {
-            comboItemRepository.deleteAll(combo.getItems());
-        }
-        
-        // Delete old images
-        if (combo.getImages() != null) {
+        if (request.getImageUrls() != null) {
             combo.getImages().clear();
-        }
-        
-        // Create new images
-        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
-            List<ComboImage> images = new ArrayList<>();
-            for (String url : request.getImageUrls()) {
-                ComboImage image = ComboImage.builder()
-                        .url(url)
-                        .combo(combo)
-                        .build();
-                images.add(image);
+            // Thêm ảnh mới
+            if (!request.getImageUrls().isEmpty()) {
+                List<ComboImage> newImages = request.getImageUrls().stream()
+                        .map(url -> ComboImage.builder()
+                                .url(url)
+                                .combo(combo)
+                                .build())
+                        .collect(Collectors.toList());
+                combo.getImages().addAll(newImages);
             }
-            combo.setImages(images);
         }
-        
-        // Create new combo items
-        List<ComboItem> items = new ArrayList<>();
-        for (ComboItemRequest itemRequest : request.getItems()) {
-            Product product = productRepository.findById(itemRequest.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Không tìm thấy sản phẩm với ID: " + itemRequest.getProductId()));
-            
-            ComboItem item = ComboItem.builder()
-                    .combo(combo)
-                    .product(product)
-                    .quantity(itemRequest.getQuantity())
-                    .displayOrder(itemRequest.getDisplayOrder() != null ? itemRequest.getDisplayOrder() : 0)
-                    .build();
-            
-            items.add(item);
+        // 4. Xử lý Items
+        if (request.getItems() != null) {
+            // 4.1 Lấy danh sách ID
+            List<Long> productIds = request.getItems().stream()
+                    .map(ComboItemRequest::getProductId)
+                    .collect(Collectors.toList());
+            // 4.2 Query 1 lần lấy hết Product
+            List<Product> products = productRepository.findAllById(productIds);
+            // Validate: Nếu thiếu product nào đó
+            if (products.size() != productIds.stream().distinct().count()) {
+                throw new ResourceNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
+            }
+            Map<Long, Product> productMap = products.stream()
+                    .collect(Collectors.toMap(Product::getId, p -> p));
+            // 4.3 Xóa items cũ
+            combo.getItems().clear();
+            // 4.4 Thêm items mới
+            List<ComboItem> newItems = request.getItems().stream()
+                    .map(req -> ComboItem.builder()
+                            .combo(combo)
+                            .product(productMap.get(req.getProductId()))
+                            .quantity(req.getQuantity())
+                            .displayOrder(req.getDisplayOrder() != null ? req.getDisplayOrder() : 0)
+                            .build())
+                    .collect(Collectors.toList());
+            combo.getItems().addAll(newItems);
         }
-        
-        items = comboItemRepository.saveAll(items);
-        combo.setItems(items);
-        combo = comboRepository.save(combo);
-        
-        return combo;
+        // 5. Save Combo
+        return comboMapper.toResponse(comboRepository.save(combo));
     }
 
     @Override
     @Transactional
     public void deleteCombo(Long id) {
         Combo combo = comboRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy combo với ID: " + id));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.COMBO_NOT_FOUND));
         combo.setStatus(EProductStatus.DELETED);
         comboRepository.save(combo);
     }
 
     @Override
     @Transactional
-    public Combo toggleComboStatus(Long id) {
+    public ComboResponse toggleComboStatus(Long id) {
         Combo combo = comboRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy combo với ID: " + id));
-        
-        // Toggle between AVAILABLE and UNAVAILABLE
-        if (combo.getStatus() == EProductStatus.AVAILABLE) {
-            combo.setStatus(EProductStatus.UNAVAILABLE);
-        } else if (combo.getStatus() == EProductStatus.UNAVAILABLE) {
-            combo.setStatus(EProductStatus.AVAILABLE);
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.COMBO_NOT_FOUND));
+        if (combo.getStatus() == EProductStatus.DELETED) {
+            throw new BadRequestException(ErrorCode.CANNOT_UPDATE_DELETED_COMBO);
         }
-        
-        combo = comboRepository.save(combo);
-        return combo;
+        combo.setStatus(combo.getStatus() == EProductStatus.AVAILABLE
+                ? EProductStatus.UNAVAILABLE
+                : EProductStatus.AVAILABLE);
+        return comboMapper.toResponse(comboRepository.save(combo));
     }
 }

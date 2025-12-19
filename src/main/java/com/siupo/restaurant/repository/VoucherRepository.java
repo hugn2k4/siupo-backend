@@ -13,11 +13,8 @@ import java.util.Optional;
 
 @Repository
 public interface VoucherRepository extends JpaRepository<Voucher, Long> {
-    
     Optional<Voucher> findByCode(String code);
-    
-    Optional<Voucher> findByCodeAndStatus(String code, EVoucherStatus status);
-    
+
     @Query("SELECT v FROM Voucher v WHERE v.status = :status " +
            "AND v.isPublic = true " +
            "AND v.startDate <= :now " +
@@ -25,8 +22,6 @@ public interface VoucherRepository extends JpaRepository<Voucher, Long> {
            "AND (v.usageLimit = 0 OR v.usedCount < v.usageLimit)")
     List<Voucher> findAvailableVouchers(@Param("status") EVoucherStatus status, 
                                          @Param("now") LocalDateTime now);
-    
-    List<Voucher> findByStatus(EVoucherStatus status);
     
     @Query("SELECT v FROM Voucher v WHERE v.endDate < :now AND v.status != :expiredStatus")
     List<Voucher> findExpiredVouchers(@Param("now") LocalDateTime now, 

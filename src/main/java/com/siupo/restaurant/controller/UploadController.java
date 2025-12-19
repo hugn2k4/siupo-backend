@@ -13,7 +13,6 @@ import java.util.List;
 @RequestMapping("/api/upload")
 @RequiredArgsConstructor
 public class UploadController {
-
     private final CloudinaryService cloudinaryService;
 
     @PostMapping("/single")

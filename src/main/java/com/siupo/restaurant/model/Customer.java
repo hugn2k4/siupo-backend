@@ -28,11 +28,11 @@ public class Customer extends User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Wishlist wishlist;
     
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "customer", orphanRemoval = true)
     @Builder.Default
     private List<Address> addresses = new ArrayList<>();
 
     @OneToOne
-    @JoinColumn(name = "default_address_id", nullable = true)
+    @JoinColumn(name = "default_address_id")
     private Address defaultAddress; 
 }

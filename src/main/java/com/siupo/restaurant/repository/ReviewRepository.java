@@ -21,4 +21,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     
     @Query("SELECT r FROM Review r WHERE r.product.id = :productId ORDER BY r.createdAt DESC")
     List<Review> findByProductId(@Param("productId") Long productId);
+    
+    @Query("SELECT r FROM Review r WHERE r.product.id IN :productIds")
+    List<Review> findByProductIdIn(@Param("productIds") List<Long> productIds);
 }

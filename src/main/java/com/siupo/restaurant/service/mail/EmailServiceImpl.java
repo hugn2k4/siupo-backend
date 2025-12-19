@@ -16,12 +16,12 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public boolean sendOTPToEmail(String toEmail, String otp) throws MessagingException {
+    public boolean sendOTPToEmail(String toEmail, String otp, String subject) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
         helper.setTo(toEmail);
-        helper.setSubject("Xác nhận tài khoản của bạn");
+        helper.setSubject(subject);
 
         // Nếu dùng template engine Thymeleaf thì thay "${otp}" bằng biến thật
         String htmlContent = getHtmlContent(otp);

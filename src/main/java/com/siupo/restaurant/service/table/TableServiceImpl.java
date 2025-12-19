@@ -1,8 +1,8 @@
 package com.siupo.restaurant.service.table;
 
 import com.siupo.restaurant.dto.response.TableResponse;
-import com.siupo.restaurant.exception.NotFoundException;
-import com.siupo.restaurant.exception.ResourceNotFoundException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.ResourceNotFoundException;
 import com.siupo.restaurant.model.TableEntity;
 import com.siupo.restaurant.repository.TableRepository;
 import lombok.RequiredArgsConstructor;
@@ -63,7 +63,7 @@ public class TableServiceImpl implements TableService {
     @Override
     public TableResponse getTableById(Long id) {
         TableEntity table = tableRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bàn với ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.TABLE_NOT_FOUND));
         return mapToResponse(table);
     }
 
@@ -88,7 +88,7 @@ public class TableServiceImpl implements TableService {
     @Transactional
     public TableResponse updateTable(Long id, String tableNumber, Integer seat) {
         TableEntity table = tableRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bàn với ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.TABLE_NOT_FOUND));
         
         if (tableNumber != null && !tableNumber.trim().isEmpty()) {
             table.setTableNumber(tableNumber);
@@ -108,7 +108,7 @@ public class TableServiceImpl implements TableService {
     @Transactional
     public void deleteTable(Long id) {
         if (!tableRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Không tìm thấy bàn với ID: " + id);
+            throw new ResourceNotFoundException(ErrorCode.TABLE_NOT_FOUND);
         }
         
         tableRepository.deleteById(id);

@@ -1,7 +1,9 @@
 package com.siupo.restaurant.mapper;
 
+import com.siupo.restaurant.dto.request.CreateComboRequest;
 import com.siupo.restaurant.dto.response.ComboItemResponse;
 import com.siupo.restaurant.dto.response.ComboResponse;
+import com.siupo.restaurant.enums.EProductStatus;
 import com.siupo.restaurant.model.Combo;
 import com.siupo.restaurant.model.ComboImage;
 import org.springframework.stereotype.Component;
@@ -47,6 +49,16 @@ public class ComboMapper {
                 .status(combo.getStatus())
                 .createdAt(combo.getCreatedAt())
                 .updatedAt(combo.getUpdatedAt())
+                .build();
+    }
+
+    public Combo toEntity(CreateComboRequest request) {
+        if (request == null) return null;
+        return Combo.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .basePrice(request.getBasePrice())
+                .status(EProductStatus.AVAILABLE)
                 .build();
     }
 }

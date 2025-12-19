@@ -1,6 +1,7 @@
 version: "3.8"
 
 services:
+  # 1. Service MySQL (Database)
   mysql:
     image: mysql:8.0
     container_name: siupo-mysql-dev
@@ -8,7 +9,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-siupo_db}
     ports:
-      - "3307:3306" # Host port 3307 để tránh conflict với MySQL localhost 3306
+      - "3307:3306" # Map ra 3307 máy ngoài để không đụng MySQL có sẵn
     volumes:
       - mysql-dev-data:/var/lib/mysql
     healthcheck:
@@ -16,7 +17,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - siupo-network
 
+  # 2. Service Redis (Cache & OTP) - QUAN TRỌNG: Cần thêm cái này
+  redis:
+    image: redis:alpine
+    container_name: siupo-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - siupo-network
+
+  # 3. Service Backend (Spring Boot App)
   app:
     build: .
     container_name: siupo-app-dev
@@ -24,14 +39,29 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/siupo_db?allowPublicKeyRetrieval=true&useSSL=false}
+      # Cấu hình kết nối MySQL (Dùng tên service 'mysql' thay vì localhost)
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/siupo_db?allowPublicKeyRetrieval=true&useSSL=false
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=123456
+      # Cấu hình kết nối Redis (Dùng tên service 'redis' thay vì localhost)
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
       - JAVA_OPTS=-Xms256m -Xmx512m
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
+    networks:
+      - siupo-network
 
+# Định nghĩa Volumes để dữ liệu không mất khi tắt Docker
 volumes:
   mysql-dev-data:
+  redis-dev-data:
+
+# Định nghĩa Network để các container nhìn thấy nhau
+networks:
+  siupo-network:
+    driver: bridge
