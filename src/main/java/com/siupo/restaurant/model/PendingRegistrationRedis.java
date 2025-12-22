@@ -13,4 +13,5 @@ public class PendingRegistrationRedis {
     private String email;
     private String fullName;
     private String password;
+    private String phoneNumber;
 }
