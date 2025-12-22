@@ -22,9 +22,13 @@ public class PlaceTableForCustomer {
     private Long id;
 
     private Integer member;
+
     @Enumerated(EnumType.STRING)
     private EPlaceTableStatus status;
+
+    @Column(nullable = false, length = 100)
     private String email;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
     private User user;

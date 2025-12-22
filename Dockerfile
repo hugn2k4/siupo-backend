@@ -15,7 +15,7 @@ RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
 # Copy JAR đã build từ stage 1
-COPY --from=build /app/target/restaurant-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/*.jar app.jar
 
 # Biến môi trường mặc định
 ENV PORT=8080

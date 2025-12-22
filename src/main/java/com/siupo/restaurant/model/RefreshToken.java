@@ -43,4 +43,8 @@ public class RefreshToken {
     public boolean isActive() {
         return !revoked && !isExpired();
     }
+
+    public boolean isRevoked() {
+        return revoked;
+    }
 }

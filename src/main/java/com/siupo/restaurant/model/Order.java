@@ -38,6 +38,13 @@ public class Order {
 
     private Double vat;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "voucher_id")
+    private Voucher voucher;
+
+    @Builder.Default
+    private Double discountAmount = 0.0;
+
     @Enumerated(EnumType.STRING)
     private EOrderStatus status;
 

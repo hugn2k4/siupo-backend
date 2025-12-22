@@ -28,7 +28,11 @@ public class Payment {
     private EPaymentStatus status;
 
     private LocalDateTime paymentDate;
+
     private String paymentInfo;
+
     private String paymentMessage;
+
+    @Enumerated(EnumType.STRING)
     private EPaymentMethod paymentMethod;
 }

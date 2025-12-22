@@ -25,4 +25,7 @@ public class CreateOrderResponse {
     private String payUrl;
     private String qrCodeUrl;
     private String deeplink;
+    private String voucherCode;
+    private Double discountAmount;
+    private Double finalAmount;
 }

@@ -3,6 +3,7 @@ package com.siupo.restaurant.dto;
 import com.siupo.restaurant.enums.EProductStatus;
 import com.siupo.restaurant.model.Product;
 import com.siupo.restaurant.model.ProductImage;
+import com.siupo.restaurant.model.ProductTag;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -27,48 +29,9 @@ public class ProductDTO {
     private List<ReviewDTO> reviews;
     private Double rating;
     private Integer reviewCount;
+    private List<String> tags;
     private EProductStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isWishlist;
-    public ProductDTO toDTO(Product product) {
-        if (product == null) return null;
-
-        return ProductDTO.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .description(product.getDescription())
-                .price(product.getPrice())
-                .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
-                .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
-                .images(product.getImages() != null ? product.getImages().stream()
-                        .map(image -> new ImageDTO(image.getId(), image.getUrl(), image.getName()))
-                        .toList() : null)
-                .imageUrls(product.getImages() != null ? product.getImages().stream()
-                        .map(ProductImage::getUrl)
-                        .toList() : null)
-                .reviews(product.getReviews() != null ? product.getReviews().stream()
-                        .map(review -> {
-                            ReviewDTO dto = new ReviewDTO();
-                            dto.setId(review.getId());
-                            dto.setContent(review.getContent());
-                            dto.setRate(review.getRate());
-                            dto.setCreatedAt(review.getCreatedAt());
-                            dto.setUpdatedAt(review.getUpdatedAt());
-                            dto.setUserId(review.getUser() != null ? review.getUser().getId() : null);
-                            return dto;
-                        })
-                        .toList() : null)
-                .rating(product.getReviews() != null && !product.getReviews().isEmpty() 
-                        ? product.getReviews().stream()
-                                .mapToDouble(review -> review.getRate() != null ? review.getRate() : 0.0)
-                                .average()
-                                .orElse(0.0)
-                        : 0.0)
-                .reviewCount(product.getReviews() != null ? product.getReviews().size() : 0)
-                .status(product.getStatus())
-                .createdAt(product.getCreatedAt())
-                .updatedAt(product.getUpdatedAt())
-                .build();
-    }
 }

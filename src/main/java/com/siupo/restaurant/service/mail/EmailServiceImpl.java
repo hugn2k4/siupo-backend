@@ -1,13 +1,11 @@
 package com.siupo.restaurant.service.mail;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
-@Slf4j
 @Service
 public class EmailServiceImpl implements EmailService {
 
@@ -18,28 +16,25 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public boolean sendOTPToEmail(String toEmail, String otp) throws MessagingException {
+    public boolean sendOTPToEmail(String toEmail, String otp, String subject) throws MessagingException {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         try {
-            log.info("🔄 Preparing to send OTP email to: {}", toEmail);
-            
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setTo(toEmail);
-            helper.setSubject("Xác nhận tài khoản của bạn");
-
-            String htmlContent = getHtmlContent(otp);
-            helper.setText(htmlContent, true);
-
-            log.info("📧 Sending OTP email to: {}", toEmail);
-            mailSender.send(message);
-            log.info("✅ OTP email sent successfully to: {}", toEmail);
-
-            return true;
-        } catch (MessagingException e) {
-            log.error("❌ Failed to send OTP email to: {}. Error: {}", toEmail, e.getMessage(), e);
-            throw e;
+            helper.setFrom("siupo@gmail.com", "Siupo Restaurant");
+        } catch (java.io.UnsupportedEncodingException e) {
+            helper.setFrom("siupo@gmail.com");
         }
+        helper.setTo(toEmail);
+        helper.setSubject(subject != null ? subject : "Mã xác thực OTP - Siupo Restaurant");
+
+        // Nếu dùng template engine Thymeleaf thì thay "${otp}" bằng biến thật
+        String htmlContent = getHtmlContent(otp);
+
+        helper.setText(htmlContent, true);
+
+        mailSender.send(message);
+
+        return true;
     }
 
     private String getHtmlContent(String otp) {

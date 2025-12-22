@@ -2,9 +2,11 @@ package com.siupo.restaurant.controller;
 
 import com.siupo.restaurant.dto.request.*;
 import com.siupo.restaurant.dto.response.ApiResponse;
-import com.siupo.restaurant.dto.response.LoginDataResponse;
-import com.siupo.restaurant.dto.response.MessageDataReponse;
+import com.siupo.restaurant.dto.response.LoginResponse;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.NotFoundException;
 import com.siupo.restaurant.service.authentication.AuthenticationService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -16,108 +18,74 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Arrays;
-import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j  // ✅ Lombok tự động tạo logger
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-
     private final AuthenticationService authenticationService;
     
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenExpiration;
-    
-    private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+
+    @Value("${jwt.refresh-cookie-name}")
+    private String refreshTokenCookieName;
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginDataResponse>> login(@RequestBody LoginRequest request) {
-        try {
-        LoginDataResponse dataResponse = authenticationService.login(request);
-        if (dataResponse.getAccessToken() == null) {
-            ApiResponse<LoginDataResponse> errorResponse = ApiResponse.<LoginDataResponse>builder()
-                    .success(false)
-                    .code("401")
-                    .message(dataResponse.getMessage())
-                    .data(null)
-                    .build();
-            return ResponseEntity.ok()
-                    .body(errorResponse);
-        }
-        ResponseCookie refreshTokenCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, dataResponse.getRefreshToken())
-                .httpOnly(true)
-                .secure(true) // Chỉ gửi qua HTTPS (set false cho development)
-                .sameSite("Strict")
-                .maxAge(refreshTokenExpiration / 1000)
-                .path("/")
-                .build();
-
-        ApiResponse<LoginDataResponse> apiResponse = ApiResponse.<LoginDataResponse>builder()
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse loginResponse = authenticationService.login(request);
+        ApiResponse<LoginResponse> response = ApiResponse.<LoginResponse>builder()
                 .success(true)
                 .code("200")
-                .message("Đăng nhập thành công!")
-                .data(dataResponse)
+                .message("Login successful")
+                .data(loginResponse)
                 .build();
-        
+        ResponseCookie refreshTokenCookie = buildRefreshCookie(loginResponse.getRefreshToken());
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
-                .body(apiResponse);
-        } catch (Exception e) {
-            log.error("Login error: ", e);  // ⚠️ XEM LOG ĐỂ BIẾT LỖI CỤ THỂ
-            return ResponseEntity.status(500)
-                    .body(ApiResponse.<LoginDataResponse>builder()
-                            .success(false)
-                            .code("500")
-                            .message("Internal server error")
-                            .build());
-        }
+                .body(response);
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Void>> register(@RequestBody RegisterRequest user) {
-        MessageDataReponse messageDataReponse = authenticationService.register(user);
-        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
-                .success(messageDataReponse.isSuccess())
-                .code(messageDataReponse.getCode())
-                .message(messageDataReponse.getMessage())
+    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest user) {
+        authenticationService.register(user);
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(true)
+                .code("201")
+                .message("Registration successful! Please check your email to confirm your account.")
                 .build();
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/request-forgot-password")
     public ResponseEntity<ApiResponse<Void>> requestForgotPassword(@RequestParam String email) {
-        MessageDataReponse messageDataReponse = authenticationService.requestForgotPassword(email);
+        authenticationService.requestForgotPassword(email);
         ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(messageDataReponse.isSuccess())
-                .code(messageDataReponse.getCode())
-                .message(messageDataReponse.getMessage())
+                .success(true)
+                .code("200")
+                .message("If the email is registered, a password reset OTP has been sent.")
                 .build();
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/set-new-password")
-    public ResponseEntity<ApiResponse<Void>> setNewPassWord(@RequestBody ForgotPasswordRequest request) {
-        MessageDataReponse messageDataReponse = authenticationService.setNewPassword(request);
+    public ResponseEntity<ApiResponse<Void>> setNewPassWord(@Valid @RequestBody ConfirmForgotPasswordRequest request) {
+        authenticationService.setNewPassword(request);
         ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(messageDataReponse.isSuccess())
-                .code(messageDataReponse.getCode())
-                .message(messageDataReponse.getMessage())
+                .success(true)
+                .code("200")
+                .message("Password has been reset successfully!")
                 .build();
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/confirm")
-    public ResponseEntity<ApiResponse<Void>> confirm(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        String otp = body.get("otp");
-        MessageDataReponse dataReponse = authenticationService.confirmRegistration(email, otp);
-
+    public ResponseEntity<ApiResponse<Void>> confirm(@Valid @RequestBody ConfirmRegistrationRequest request) {
+        authenticationService.confirmRegistration(request);
         ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(dataReponse.isSuccess())
-                .code(dataReponse.getCode())
-                .message(dataReponse.getMessage())
+                .success(true)
+                .code("200")
+                .message("Account confirmed successfully!")
                 .build();
         return ResponseEntity.ok(response);
     }
@@ -125,98 +93,77 @@ public class AuthController {
     @PostMapping("/resend-otp")
     public ResponseEntity<ApiResponse<Void>> resend(@RequestParam String email) {
         authenticationService.resendOtp(email);
-
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
                 .code("200")
-                .message("Đã gửi lại mã OTP mới!")
+                .message("OTP has been resent successfully!")
                 .build();
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<ApiResponse<LoginDataResponse>> refreshToken(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(HttpServletRequest request) {
         String refreshToken = getRefreshTokenFromCookie(request);
         if (refreshToken == null) {
-            ApiResponse<LoginDataResponse> errorResponse = ApiResponse.<LoginDataResponse>builder()
-                    .success(false)
-                    .code("401")
-                    .message("Refresh token không tồn tại")
-                    .build();
-            return ResponseEntity.status(401).body(errorResponse);
+            throw new NotFoundException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
         }
-        
-        RefreshTokenRequest refreshRequest = new RefreshTokenRequest();
-        refreshRequest.setRefreshToken(refreshToken);
-        LoginDataResponse authResponse = authenticationService.refreshToken(refreshRequest);
+        LoginResponse authResponse = authenticationService.refreshToken(refreshToken);
+        ResponseCookie refreshCookie = buildRefreshCookie(authResponse.getRefreshToken());
+        LoginResponse responseData = LoginResponse.builder()
+                .accessToken(authResponse.getAccessToken())
+                .build();
+        ApiResponse<LoginResponse> response = ApiResponse.<LoginResponse>builder()
+                .success(true)
+                .code("200")
+                .message("Refresh token successful")
+                .data(responseData)
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(response);
+    }
 
-        ResponseCookie newRefreshTokenCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, authResponse.getRefreshToken())
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request) {
+        String refreshToken = getRefreshTokenFromCookie(request);
+        if (refreshToken != null) {
+            authenticationService.logout(refreshToken);
+        }
+        ResponseCookie clearCookie = ResponseCookie.from(refreshTokenCookieName, "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .maxAge(0)
+                .path("/")
+                .build();
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(true)
+                .code("200")
+                .message("Logout successful")
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, clearCookie.toString())
+                .body(response);
+    }
+
+    private String getRefreshTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) {
+            return null;
+        }
+        return Arrays.stream(request.getCookies())
+                .filter(cookie -> refreshTokenCookieName.equals(cookie.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private ResponseCookie buildRefreshCookie(String refreshToken) {
+        return ResponseCookie.from(refreshTokenCookieName, refreshToken)
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Strict")
                 .maxAge(refreshTokenExpiration / 1000)
                 .path("/")
                 .build();
-
-        LoginDataResponse secureResponse = LoginDataResponse.builder()
-                .message(authResponse.getMessage())
-                .accessToken(authResponse.getAccessToken())
-                .build();
-
-        ApiResponse<LoginDataResponse> response = ApiResponse.<LoginDataResponse>builder()
-                .success(true)
-                .code("200")
-                .message("Refresh token thành công")
-                .data(secureResponse)
-                .build();
-        
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, newRefreshTokenCookie.toString())
-                .body(response);
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request) {
-        // Lấy refresh token từ cookie
-        String refreshToken = getRefreshTokenFromCookie(request);
-        if (refreshToken != null) {
-            LogoutRequest logoutRequest = new LogoutRequest();
-            logoutRequest.setRefreshToken(refreshToken);
-            authenticationService.logout(logoutRequest);
-        }
-        
-        // Xóa refresh token cookie
-        ResponseCookie clearCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Strict")
-                .maxAge(0) // Xóa cookie
-                .path("/")
-                .build();
-
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(true)
-                .code("200")
-                .message("Đăng xuất thành công!")
-                .build();
-        
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, clearCookie.toString())
-                .body(response);
-    }
-    
-    /**
-     * Helper method để lấy refresh token từ cookie
-     */
-    private String getRefreshTokenFromCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) {
-            return null;
-        }
-        
-        return Arrays.stream(request.getCookies())
-                .filter(cookie -> REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName()))
-                .map(Cookie::getValue)
-                .findFirst()
-                .orElse(null);
     }
 }

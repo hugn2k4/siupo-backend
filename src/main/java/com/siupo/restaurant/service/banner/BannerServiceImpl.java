@@ -2,7 +2,8 @@ package com.siupo.restaurant.service.banner;
 
 import com.siupo.restaurant.dto.request.BannerRequest;
 import com.siupo.restaurant.dto.response.BannerResponse;
-import com.siupo.restaurant.exception.ResourceNotFoundException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import com.siupo.restaurant.model.Banner;
 import com.siupo.restaurant.repository.BannerRepository;
 import lombok.RequiredArgsConstructor;
@@ -68,7 +69,8 @@ public class BannerServiceImpl implements BannerService {
 
     private Banner findBannerById(Long id) {
         return bannerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Banner không tồn tại với ID: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Banner không tồn tại với ID: " + id));
     }
 
     private BannerResponse mapToResponse(Banner banner) {

@@ -1,12 +1,12 @@
 package com.siupo.restaurant.service.address;
 
-import com.siupo.restaurant.dto.AddressDTO;
-import com.siupo.restaurant.dto.request.AddressUpdateRequest;
+import com.siupo.restaurant.dto.request.AddressRequest;
 import com.siupo.restaurant.dto.response.AddressResponse;
-import com.siupo.restaurant.dto.response.MessageDataReponse;
-import com.siupo.restaurant.exception.BadRequestException;
-import com.siupo.restaurant.exception.NotFoundException;
-import com.siupo.restaurant.exception.UnauthorizedException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
+import com.siupo.restaurant.exception.business.NotFoundException;
+import com.siupo.restaurant.exception.business.UnauthorizedException;
+import com.siupo.restaurant.mapper.AddressMapper;
 import com.siupo.restaurant.model.Address;
 import com.siupo.restaurant.model.Customer;
 import com.siupo.restaurant.model.User;
@@ -18,10 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-
-import static com.siupo.restaurant.dto.response.AddressResponse.mapAddressEntityToResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -29,76 +25,75 @@ import static com.siupo.restaurant.dto.response.AddressResponse.mapAddressEntity
 public class AddressServiceImpl implements AddressService {
     private final AddressRepository addressRepository;
     private final UserRepository userRepository;
+    private final AddressMapper addressMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public List<AddressResponse> getAddresses(User user) {
-        return addressRepository.findByUser(user).stream()
-                .map(AddressResponse::mapAddressEntityToResponse)
+        Customer customer = getCustomer(user);
+        List<Address> addresses = addressRepository.findAllByCustomer(customer);
+        Address defaultAddress = customer.getDefaultAddress();
+        return addresses.stream()
+                .map(address -> {
+                    if (defaultAddress != null && defaultAddress.getId().equals(address.getId())) {
+                        return addressMapper.toDefaultAddressResponse(address);
+                    }
+                    return addressMapper.toAddressResponse(address);
+                })
                 .toList();
     }
 
     @Override
     @Transactional
-    public AddressResponse addAddress(User user, AddressDTO dto) {
+    public AddressResponse addAddress(User user, AddressRequest address) {
         Customer customer = getCustomer(user);
-
-        Address address = Address.builder()
-                .user(user)
-                .address(dto.getAddress())
-                .ward(dto.getWard())
-                .district(dto.getDistrict())
-                .province(dto.getProvince())
-                .receiverName(dto.getReceiverName())
-                .receiverPhone(dto.getReceiverPhone())
+        Address newAddress = Address.builder()
+                .customer(customer)
+                .address(address.getAddress())
+                .ward(address.getWard())
+                .district(address.getDistrict())
+                .province(address.getProvince())
+                .receiverName(address.getReceiverName())
+                .receiverPhone(address.getReceiverPhone())
+                .customer(customer)
                 .build();
-
-        Address saved = addressRepository.save(address);
-
-        long addressCount = addressRepository.countByUserId(customer.getId());
-
-        if (addressCount == 1) {
+        Address saved = addressRepository.save(newAddress);
+        if (customer.getDefaultAddress() == null) {
             customer.setDefaultAddress(saved);
             userRepository.save(customer);
         }
-
-        return mapAddressEntityToResponse(saved);
+        return addressMapper.toAddressResponse(saved);
     }
 
     @Override
     @Transactional
-    public AddressResponse updateAddress(Long addressId, AddressDTO updateAddress) {
-        Optional<Address> address = addressRepository.findById(addressId);
-        if (address.isEmpty()) {
-            return mapAddressEntityToResponse(address.get());
-        }
-        Address addr = address.get();
-        addr.setAddress(updateAddress.getAddress());
-        addr.setWard(updateAddress.getWard());
-        addr.setDistrict(updateAddress.getDistrict());
-        addr.setProvince(updateAddress.getProvince());
-        addr.setReceiverName(updateAddress.getReceiverName());
-        addr.setReceiverPhone(updateAddress.getReceiverPhone());
-        addressRepository.save(addr);
-
-        return mapAddressEntityToResponse(addr);
-    }
-
-    @Override
-    @Transactional
-    public MessageDataReponse deleteAddress(User user, Long addressId) {
+    public AddressResponse updateAddress(User user, Long addressId, AddressRequest updateAddress) {
         Customer customer = getCustomer(user);
-        Optional<Address> address = addressRepository.findById(addressId);
-        if (address.isEmpty()) {
-            return new MessageDataReponse(false, "400", "Địa chỉ không tồn tại");
-        }
-        Address addr = address.get();
+        Address address = addressRepository
+                .findByIdAndCustomer(addressId, customer)
+                .orElseThrow(() -> new NotFoundException(ErrorCode.ADDRESS_NOT_FOUND));
+        address.setAddress(updateAddress.getAddress());
+        address.setWard(updateAddress.getWard());
+        address.setDistrict(updateAddress.getDistrict());
+        address.setProvince(updateAddress.getProvince());
+        address.setReceiverName(updateAddress.getReceiverName());
+        address.setReceiverPhone(updateAddress.getReceiverPhone());
+        Address updated = addressRepository.save(address);
+        return addressMapper.toAddressResponse(updated);
+    }
 
+    @Override
+    @Transactional
+    public void deleteAddress(User user, Long addressId) {
+        Customer customer = getCustomer(user);
+        Address address = addressRepository
+                .findByIdAndCustomer(addressId, customer)
+                .orElseThrow(() -> new NotFoundException(ErrorCode.ADDRESS_NOT_FOUND));
         if (customer.getDefaultAddress() != null &&
-                customer.getDefaultAddress().equals(addr)) {
-            return new MessageDataReponse(false, "401", "Không thể xóa địa chỉ mặc định");
+                customer.getDefaultAddress().getId().equals(address.getId())) {
+            throw new BadRequestException(ErrorCode.CANNOT_DELETE_DEFAULT_ADDRESS);
         }
-        addressRepository.delete(addr);
-        return new MessageDataReponse(true, "200", "Xóa địa chỉ thành công");
+        addressRepository.delete(address);
     }
 
     @Override
@@ -106,39 +101,27 @@ public class AddressServiceImpl implements AddressService {
         Customer customer = getCustomer(user);
         Address defaultAddress = customer.getDefaultAddress();
         if(defaultAddress == null) {
-            return null;
+            throw new NotFoundException(ErrorCode.ADDRESS_NOT_FOUND);
         }
-        return AddressResponse.builder()
-                .id(defaultAddress.getId())
-                .address(defaultAddress.getAddress())
-                .ward(defaultAddress.getWard())
-                .district(defaultAddress.getDistrict())
-                .province(defaultAddress.getProvince())
-                .receiverName(defaultAddress.getReceiverName())
-                .receiverPhone(defaultAddress.getReceiverPhone())
-                .isDefault(true)
-                .build();
+        return addressMapper.toDefaultAddressResponse(defaultAddress);
     }
 
     @Override
     @Transactional
     public AddressResponse setAddressDefault(User user, Long addressId) {
         Customer customer = getCustomer(user);
-        Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new NotFoundException("Địa chỉ không tồn tại"));
-        if (!address.getUser().getId().equals(customer.getId())) {
-            throw new UnauthorizedException("Địa chỉ không thuộc về người dùng");
-        }
+        Address address = addressRepository
+                .findByIdAndCustomer(addressId, customer)
+                .orElseThrow(() -> new UnauthorizedException(ErrorCode.ADDRESS_NOT_FOUND));
         customer.setDefaultAddress(address);
         userRepository.save(customer);
-
-        return mapAddressEntityToResponse(address);
+        return addressMapper.toDefaultAddressResponse(address);
     }
 
     private Customer getCustomer(User user) {
-        if (!(user instanceof Customer customer)) {
-            throw new UnauthorizedException("Chỉ customer mới có địa chỉ");
+        if (user instanceof Customer customer) {
+            return customer;
         }
-        return customer;
+        throw new BadRequestException(ErrorCode.NOT_CUSTOMER);
     }
 }

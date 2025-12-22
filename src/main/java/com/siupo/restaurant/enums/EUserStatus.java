@@ -4,5 +4,4 @@ public enum EUserStatus {
     ACTIVE,
     INACTIVE,
     SUSPENDED,
-    DELETED
 }

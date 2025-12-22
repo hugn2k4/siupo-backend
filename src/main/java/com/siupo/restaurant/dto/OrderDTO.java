@@ -45,8 +45,6 @@ public class OrderDTO {
                         ? order.getPayment().getPaymentMethod()
                         : null)
                 .items(itemDTOs)
-
-                // 👉 Thêm các trường mới tại đây
                 .userId(order.getUser() != null ? order.getUser().getId() : null)
                 .userName(order.getUser() != null ? order.getUser().getFullName() : null)
                 .createdAt(order.getCreatedAt())

@@ -4,7 +4,8 @@ import com.siupo.restaurant.dto.request.PlaceTableForCustomerRequest;
 import com.siupo.restaurant.dto.request.PreOrderItemRequest;
 import com.siupo.restaurant.dto.response.*;
 import com.siupo.restaurant.enums.EPlaceTableStatus;
-import com.siupo.restaurant.exception.ResourceNotFoundException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.OrderItemRepository;
 import com.siupo.restaurant.repository.PlaceTableForCustomerRepository;
@@ -86,8 +87,9 @@ public class PlaceTableForCustomerServiceImpl implements PlaceTableForCustomerSe
         if (request.getPreOrderItems() != null && !request.getPreOrderItems().isEmpty()) {
             for (PreOrderItemRequest preOrderItem : request.getPreOrderItems()) {
                 Product product = productRepository.findById(preOrderItem.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException(
-                                "Không tìm thấy sản phẩm với ID: " + preOrderItem.getProductId()));
+                        .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                        .orElseThrow(() -> new ResourceNotFoundException(
+//                                "Không tìm thấy sản phẩm với ID: " + preOrderItem.getProductId()));
 
                 OrderItem orderItem = OrderItem.builder()
                         .product(product)
@@ -121,7 +123,8 @@ public class PlaceTableForCustomerServiceImpl implements PlaceTableForCustomerSe
     @Transactional
     public PlaceTableForCustomerResponse updateTotalPrice(Long placeTableId) {
         PlaceTableForCustomer placeTable = placeTableRepository.findById(placeTableId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt bàn với ID: " + placeTableId));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt bàn với ID: " + placeTableId));
 
         Double totalPrice = placeTable.getItems().stream()
                 .mapToDouble(OrderItem::getPrice)
@@ -136,7 +139,8 @@ public class PlaceTableForCustomerServiceImpl implements PlaceTableForCustomerSe
     @Override
     public void sendBookingConfirmation(Long placeTableId) {
         PlaceTableForCustomer placeTable = placeTableRepository.findById(placeTableId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt bàn với ID: " + placeTableId));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt bàn với ID: " + placeTableId));
 
         // TODO: Implement notification service
         // notificationService.sendBookingConfirmation(placeTable);

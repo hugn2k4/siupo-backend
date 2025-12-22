@@ -2,7 +2,8 @@ package com.siupo.restaurant.service.managePlaceTable;
 
 import com.siupo.restaurant.dto.response.*;
 import com.siupo.restaurant.enums.EPlaceTableStatus;
-import com.siupo.restaurant.exception.ResourceNotFoundException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.PlaceTableForCustomerRepository;
 import com.siupo.restaurant.repository.PlaceTableForGuestRepository;
@@ -38,7 +39,8 @@ public class ManagePlaceTableServiceImpl implements ManagePlaceTableService {
     @Override
     public PlaceTableForCustomerResponse getCustomerBookingById(Long id) {
         PlaceTableForCustomer booking = customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt bàn với ID: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt bàn với ID: " + id));
         return mapCustomerToResponse(booking);
     }
 
@@ -107,7 +109,8 @@ public class ManagePlaceTableServiceImpl implements ManagePlaceTableService {
     @Override
     public void resendCustomerConfirmation(Long id) {
         PlaceTableForCustomer booking = customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt bàn với ID: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt bàn với ID: " + id));
 
         // TODO: Implement notification service
         log.info("Resend confirmation for customer booking ID: {} - User: {}", id, booking.getUser().getId());
@@ -126,7 +129,8 @@ public class ManagePlaceTableServiceImpl implements ManagePlaceTableService {
     @Override
     public PlaceTableForGuestResponse getGuestBookingById(Long id) {
         PlaceTableForGuest booking = guestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu đặt bàn với ID: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu đặt bàn với ID: " + id));
         return mapGuestToResponse(booking);
     }
 
@@ -266,7 +270,8 @@ public class ManagePlaceTableServiceImpl implements ManagePlaceTableService {
 
     private PlaceTableForCustomerResponse updateCustomerStatus(Long id, EPlaceTableStatus status, String note) {
         PlaceTableForCustomer booking = customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt bàn với ID: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt bàn với ID: " + id));
 
         booking.setStatus(status);
 
@@ -286,7 +291,8 @@ public class ManagePlaceTableServiceImpl implements ManagePlaceTableService {
 
     private PlaceTableForGuestResponse updateGuestStatus(Long id, EPlaceTableStatus status, String note) {
         PlaceTableForGuest booking = guestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu đặt bàn với ID: " + id));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu đặt bàn với ID: " + id));
 
         booking.setStatus(status);
 

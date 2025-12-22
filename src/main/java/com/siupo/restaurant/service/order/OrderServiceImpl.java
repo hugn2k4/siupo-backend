@@ -8,11 +8,13 @@ import com.siupo.restaurant.dto.response.*;
 import com.siupo.restaurant.enums.EOrderStatus;
 import com.siupo.restaurant.enums.EPaymentMethod;
 import com.siupo.restaurant.enums.EPaymentStatus;
-import com.siupo.restaurant.exception.BadRequestException;
-import com.siupo.restaurant.exception.NotFoundException;
+import com.siupo.restaurant.exception.base.ErrorCode;
+import com.siupo.restaurant.exception.business.BadRequestException;
+import com.siupo.restaurant.exception.business.NotFoundException;
 import com.siupo.restaurant.model.*;
 import com.siupo.restaurant.repository.*;
 import com.siupo.restaurant.service.payment.MomoPaymentService;
+import com.siupo.restaurant.service.voucher.VoucherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,35 +36,63 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemRepository orderItemRepository;
     private final PaymentRepository paymentRepository;
     private final MomoPaymentService momoPaymentService;
+    private final VoucherService voucherService;
 
     @Override
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequest request, User user) {
         Cart cart = cartRepository.findByUser(user)
-                .orElseThrow(() -> new BadRequestException("Giỏ hàng trống"));
+                .orElseThrow(() -> new BadRequestException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new BadRequestException("Giỏ hàng trống"));
 
         List<CartItem> cartItems = cartItemRepository.findByCart(cart);
         if (cartItems.isEmpty()) {
-            throw new BadRequestException("Giỏ hàng trống");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Giỏ hàng trống");
         }
 
         if (request.getItems() == null || request.getItems().isEmpty()) {
-            throw new BadRequestException("Danh sách sản phẩm đặt hàng không được để trống");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Danh sách sản phẩm đặt hàng không được để trống");
         }
 
-        // Kiểm tra sản phẩm request có trong cart
+        // Kiểm tra sản phẩm/combo request có trong cart
         for (CartItemDTO item : request.getItems()) {
-            CartItem ci = cartItems.stream()
-                    .filter(c -> c.getProduct().getId().equals(item.getProduct().getId()))
-                    .findFirst()
-                    .orElseThrow(() -> new BadRequestException("Sản phẩm không tồn tại trong giỏ hàng"));
+            CartItem ci = null;
+            String itemName = "";
+
+            // Tìm cart item tương ứng (product hoặc combo)
+            if (item.getProduct() != null && item.getProduct().getId() != null) {
+                ci = cartItems.stream()
+                        .filter(c -> c.getProduct() != null && c.getProduct().getId().equals(item.getProduct().getId()))
+                        .findFirst()
+                        .orElse(null);
+                if (ci != null) {
+                    itemName = ci.getProduct().getName();
+                }
+            } else if (item.getCombo() != null && item.getCombo().getId() != null) {
+                ci = cartItems.stream()
+                        .filter(c -> c.getCombo() != null && c.getCombo().getId().equals(item.getCombo().getId()))
+                        .findFirst()
+                        .orElse(null);
+                if (ci != null) {
+                    itemName = ci.getCombo().getName();
+                }
+            }
+
+            if (ci == null) {
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Sản phẩm/Combo không tồn tại trong giỏ hàng");
+            }
 
             if (item.getQuantity() == null || item.getQuantity() <= 0) {
-                throw new BadRequestException("Số lượng sản phẩm không hợp lệ");
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Số lượng không hợp lệ");
             }
 
             if (!item.getQuantity().equals(ci.getQuantity())) {
-                throw new BadRequestException("Số lượng sản phẩm " + ci.getProduct().getName() + " không khớp");
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Số lượng " + itemName + " không khớp");
             }
         }
 
@@ -74,21 +104,44 @@ public class OrderServiceImpl implements OrderService {
                 .status(EOrderStatus.PENDING)
                 .build();
 
+        order = orderRepository.save(order);
+
         double subTotal = 0.0;
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CartItemDTO item : request.getItems()) {
-            CartItem cartItem = cartItems.stream()
-                    .filter(ci -> ci.getProduct().getId().equals(item.getProduct().getId()))
-                    .findFirst()
-                    .get();
+            CartItem cartItem = null;
+            double price = 0.0;
 
-            double price = cartItem.getProduct().getPrice();
+            // Tìm cart item tương ứng (product hoặc combo)
+            if (item.getProduct() != null && item.getProduct().getId() != null) {
+                cartItem = cartItems.stream()
+                        .filter(ci -> ci.getProduct() != null && ci.getProduct().getId().equals(item.getProduct().getId()))
+                        .findFirst()
+                        .orElse(null);
+                if (cartItem != null) {
+                    price = cartItem.getProduct().getPrice();
+                }
+            } else if (item.getCombo() != null && item.getCombo().getId() != null) {
+                cartItem = cartItems.stream()
+                        .filter(ci -> ci.getCombo() != null && ci.getCombo().getId().equals(item.getCombo().getId()))
+                        .findFirst()
+                        .orElse(null);
+                if (cartItem != null) {
+                    price = cartItem.getCombo().getBasePrice();
+                }
+            }
+
+            if (cartItem == null) {
+                continue; // Skip nếu không tìm thấy
+            }
+
             subTotal += price * item.getQuantity();
 
             OrderItem oi = OrderItem.builder()
                     .order(order)
                     .product(cartItem.getProduct())
+                    .combo(cartItem.getCombo())
                     .quantity(item.getQuantity())
                     .price(price)
                     .reviewed(false)
@@ -102,6 +155,60 @@ public class OrderServiceImpl implements OrderService {
         double vat = Math.round(subTotal * 0.1 * 100) / 100.0;
         double shippingFee = (request.getPaymentMethod() == EPaymentMethod.COD) ? 2.0 : 0.0;
         double total = subTotal + vat + shippingFee;
+        
+        // Apply voucher if provided
+        Voucher appliedVoucher = null;
+        double discountAmount = 0.0;
+        if (request.getVoucherCode() != null && !request.getVoucherCode().trim().isEmpty()) {
+            try {
+                appliedVoucher = voucherService.getVoucherEntityByCode(request.getVoucherCode());
+                
+                // Validate voucher before applying
+                if (!voucherService.canUserUseVoucher(appliedVoucher, user)) {
+                    throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                    throw new BadRequestException("Bạn không thể sử dụng voucher này");
+                }
+                
+                // Check minimum order value
+                if (appliedVoucher.getMinOrderValue() != null && total < appliedVoucher.getMinOrderValue()) {
+                    throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                    throw new BadRequestException(
+//                        String.format("Đơn hàng tối thiểu phải từ %.0f VND để sử dụng voucher này",
+//                            appliedVoucher.getMinOrderValue())
+//                    );
+                }
+                
+                // Calculate discount based on voucher type
+                switch (appliedVoucher.getType()) {
+                    case PERCENTAGE:
+                        discountAmount = total * (appliedVoucher.getDiscountValue() / 100.0);
+                        if (appliedVoucher.getMaxDiscountAmount() != null && discountAmount > appliedVoucher.getMaxDiscountAmount()) {
+                            discountAmount = appliedVoucher.getMaxDiscountAmount();
+                        }
+                        break;
+                    case FIXED_AMOUNT:
+                        discountAmount = appliedVoucher.getDiscountValue();
+                        if (discountAmount > total) {
+                            discountAmount = total;
+                        }
+                        break;
+                    case FREE_SHIPPING:
+                        discountAmount = shippingFee;
+                        break;
+                }
+                
+                discountAmount = Math.round(discountAmount * 100.0) / 100.0;
+                total = total - discountAmount;
+                
+                order.setVoucher(appliedVoucher);
+                order.setDiscountAmount(discountAmount);
+                
+                log.info("Applied voucher {} with discount {} for order", appliedVoucher.getCode(), discountAmount);
+            } catch (NotFoundException e) {
+                throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//                throw new BadRequestException("Voucher không hợp lệ: " + request.getVoucherCode());
+            }
+        }
 
         order.setVat(vat);
         order.setShippingFee(shippingFee);
@@ -111,12 +218,28 @@ public class OrderServiceImpl implements OrderService {
         Payment payment = handlePayment(order, total, request.getPaymentMethod());
         order.setPayment(payment);
         orderRepository.save(order);
+        
+        // Record voucher usage after successful order creation
+        if (appliedVoucher != null) {
+            voucherService.recordVoucherUsage(appliedVoucher, user, order.getId(), discountAmount);
+        }
 
-        // Xóa sản phẩm trong cart
-        List<Long> productIds = request.getItems().stream()
-                .map(i -> i.getProduct().getId())
-                .toList();
-        cartItemRepository.deleteByCartAndProductIdIn(cart, productIds);
+        // Xóa sản phẩm/combo trong cart
+        List<Long> itemIdsToDelete = new ArrayList<>();
+        for (CartItemDTO item : request.getItems()) {
+            if (item.getProduct() != null && item.getProduct().getId() != null) {
+                cartItems.stream()
+                        .filter(ci -> ci.getProduct() != null && ci.getProduct().getId().equals(item.getProduct().getId()))
+                        .findFirst()
+                        .ifPresent(ci -> itemIdsToDelete.add(ci.getId()));
+            } else if (item.getCombo() != null && item.getCombo().getId() != null) {
+                cartItems.stream()
+                        .filter(ci -> ci.getCombo() != null && ci.getCombo().getId().equals(item.getCombo().getId()))
+                        .findFirst()
+                        .ifPresent(ci -> itemIdsToDelete.add(ci.getId()));
+            }
+        }
+        cartItemRepository.deleteAllById(itemIdsToDelete);
 
         // Trả response
         return buildCreateOrderResponse(order, request);
@@ -144,7 +267,8 @@ public class OrderServiceImpl implements OrderService {
             return paymentRepository.save(momo);
         }
 
-        throw new BadRequestException("Phương thức thanh toán không hợp lệ");
+        throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//        throw new BadRequestException("Phương thức thanh toán không hợp lệ");
     }
 
     private CreateOrderResponse buildCreateOrderResponse(Order order, CreateOrderRequest request) {
@@ -160,7 +284,10 @@ public class OrderServiceImpl implements OrderService {
                         .stream()
                         .map(OrderItemDTO::toDTO)
                         .toList()
-                );
+                )
+                .voucherCode(order.getVoucher() != null ? order.getVoucher().getCode() : null)
+                .discountAmount(order.getDiscountAmount())
+                .finalAmount(order.getTotalPrice());
 
         if (order.getPayment() != null && order.getPayment().getPaymentMethod() == EPaymentMethod.MOMO) {
             try {
@@ -181,10 +308,12 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public CreateOrderResponse getOrderById(Long id, User user) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
 
         if (!order.getUser().getId().equals(user.getId())) {
-            throw new BadRequestException("Bạn không có quyền xem đơn hàng này");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Bạn không có quyền xem đơn hàng này");
         }
 
         return buildCreateOrderResponse(order, null);
@@ -204,18 +333,21 @@ public class OrderServiceImpl implements OrderService {
     public OrderDTO cancelOrderByCustomer(Long id, User user) {
 
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng"));
 
         // Check quyền sở hữu đơn
         if (!order.getUser().getId().equals(user.getId())) {
-            throw new BadRequestException("Bạn không có quyền hủy đơn hàng này");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Bạn không có quyền hủy đơn hàng này");
         }
 
         // Check trạng thái cho phép hủy
         if (!(order.getStatus() == EOrderStatus.PENDING ||
                 order.getStatus() == EOrderStatus.CONFIRMED ||
                 order.getStatus() == EOrderStatus.WAITING_FOR_PAYMENT)) {
-            throw new BadRequestException("Đơn hàng không thể hủy ở trạng thái hiện tại");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Đơn hàng không thể hủy ở trạng thái hiện tại");
         }
 
         // Xử lý thanh toán nếu là Momo
@@ -254,7 +386,8 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public OrderDTO getOrderDetailById(Long id) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
         return OrderDTO.toDTO(order);
     }
 
@@ -262,11 +395,13 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderDTO updateOrderStatus(Long id, EOrderStatus newStatus) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
 
         // Validate status transition
         if (!isValidStatusTransition(order.getStatus(), newStatus)) {
-            throw new BadRequestException("Không thể chuyển trạng thái từ " + order.getStatus() + " sang " + newStatus);
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Không thể chuyển trạng thái từ " + order.getStatus() + " sang " + newStatus);
         }
 
         order.setStatus(newStatus);
@@ -279,11 +414,13 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public boolean deleteOrder(Long id) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.LOI_CHUA_DAT));
+//                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + id));
 
         // Only allow deletion of canceled orders
         if (order.getStatus() != EOrderStatus.CANCELED) {
-            throw new BadRequestException("Chỉ có thể xóa đơn hàng đã bị hủy");
+            throw new BadRequestException(ErrorCode.LOI_CHUA_DAT);
+//            throw new BadRequestException("Chỉ có thể xóa đơn hàng đã bị hủy");
         }
 
         orderRepository.delete(order);
