@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class  CartItem {
+public class   CartItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

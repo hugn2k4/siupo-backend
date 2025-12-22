@@ -19,9 +19,13 @@ public class EmailServiceImpl implements EmailService {
     public boolean sendOTPToEmail(String toEmail, String otp, String subject) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
+        try {
+            helper.setFrom("siupo@gmail.com", "Siupo Restaurant");
+        } catch (java.io.UnsupportedEncodingException e) {
+            helper.setFrom("siupo@gmail.com");
+        }
         helper.setTo(toEmail);
-        helper.setSubject(subject);
+        helper.setSubject(subject != null ? subject : "Mã xác thực OTP - Siupo Restaurant");
 
         // Nếu dùng template engine Thymeleaf thì thay "${otp}" bằng biến thật
         String htmlContent = getHtmlContent(otp);

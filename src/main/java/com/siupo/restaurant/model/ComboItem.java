@@ -11,7 +11,6 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class ComboItem {
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

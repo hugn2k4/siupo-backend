@@ -15,7 +15,6 @@ import java.util.List;
 @DiscriminatorValue("CUSTOMER")
 @ToString(exclude = {"orders", "cart", "wishlist", "addresses", "defaultAddress"})
 public class Customer extends User {
-
     private Double totalSpent = 0.0;
 
     @OneToMany(mappedBy = "user")
