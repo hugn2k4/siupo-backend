@@ -81,8 +81,8 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "http://localhost:3000",
                 // Production URLs
-                "https://siupo-frontend.vercel.app/",
-                "https://siupo-frontend-admin.vercel.app/"
+                "https://siupo-frontend.vercel.app",
+                "https://siupo-frontend-admin.vercel.app"
         ));
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("*"));
