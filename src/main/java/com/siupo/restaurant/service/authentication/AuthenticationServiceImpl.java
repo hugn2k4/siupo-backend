@@ -57,8 +57,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         PendingRegistrationRedis pendingUser = new PendingRegistrationRedis(
                 request.getEmail(),
                 request.getFullName(),
-                request.getPhoneNumber(),
-                passwordEncoder.encode(request.getPassword()) // Lưu password đã mã hóa
+                passwordEncoder.encode(request.getPassword()), // Lưu password đã mã hóa
+                request.getPhoneNumber()
         );
         pendingRegistrationRepository.save(pendingUser);
 
