@@ -1,5 +1,6 @@
 package com.siupo.restaurant.dto.request;
 
+import com.siupo.restaurant.enums.EPaymentMethod;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,17 +23,24 @@ public class OrderAtTableRequest {
     @NotEmpty(message = "Danh sách món ăn không được để trống")
     private List<OrderItemRequest> items;
 
+    private String note;
+
+    private EPaymentMethod paymentMethod; // MOMO hoặc COD
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class OrderItemRequest {
 
-        @NotNull(message = "ID sản phẩm không được để trống")
         private Long productId;
+
+        private Long comboId;
 
         @NotNull(message = "Số lượng không được để trống")
         @Min(value = 1, message = "Số lượng phải lớn hơn 0")
         private Long quantity;
+
+        private String note;
     }
 }
