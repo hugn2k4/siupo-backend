@@ -12,6 +12,8 @@ import java.util.List;
 public interface ComboRepository extends JpaRepository<Combo, Long> {
     
     List<Combo> findByStatus(EProductStatus status);
+
+    List<Combo> findByIdIn(List<Long> ids);
     
     @Query("SELECT c FROM Combo c LEFT JOIN FETCH c.items WHERE c.id = :id")
     Combo findByIdWithItems(Long id);
