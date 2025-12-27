@@ -59,6 +59,7 @@ public class ProductController {
     public ResponseEntity<ApiResponse<Page<ProductResponse>>> searchAndFilterProducts(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) List<Long> categoryIds,
+            @RequestParam(required = false) List<Long> tagIds,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(defaultValue = "0") int page,
@@ -71,7 +72,9 @@ public class ProductController {
         if (categoryIds != null && categoryIds.isEmpty()) {
             throw new BadRequestException(ErrorCode.SEARCH_CATEGORY_NOT_BLANK);
         }
-        Page<ProductResponse> products = productService.searchAndFilterProducts(user,name, categoryIds, minPrice, maxPrice, page, size, sortBy);
+        Page<ProductResponse> products = productService.searchAndFilterProducts(
+                user, name, categoryIds, tagIds, minPrice, maxPrice, page, size, sortBy
+        );
         String message = products.isEmpty()
                 ? "No products found matching your criteria"
                 : "Products retrieved successfully";
