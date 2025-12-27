@@ -56,6 +56,7 @@ public class ProductServiceImpl implements ProductService {
             User user,
             String name,
             List<Long> categoryIds,
+            List<Long> tagIds,
             Double minPrice, Double maxPrice,
             int page,
             int size,
@@ -74,6 +75,13 @@ public class ProductServiceImpl implements ProductService {
         if (categoryIds != null && !categoryIds.isEmpty()) {
             Specification<Product> categorySpec = (root, query, cb) -> root.get("category").get("id").in(categoryIds);
             spec = spec == null ? categorySpec : spec.and(categorySpec);
+        }
+        if (tagIds != null && !tagIds.isEmpty()) {
+            Specification<Product> tagSpec = (root, query, cb) -> {
+                query.distinct(true); // Tránh lặp sản phẩm khi join ManyToMany
+                return root.join("tags").get("id").in(tagIds);
+            };
+            spec = spec == null ? tagSpec : spec.and(tagSpec);
         }
         if (minPrice != null) {
             Specification<Product> minSpec = (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("price"), minPrice);
