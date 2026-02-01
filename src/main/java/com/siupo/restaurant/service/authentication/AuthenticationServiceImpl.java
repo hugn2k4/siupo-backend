@@ -58,7 +58,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 request.getEmail(),
                 request.getFullName(),
                 request.getPhoneNumber(),
-                passwordEncoder.encode(request.getPassword()) // Lưu password đã mã hóa
+                passwordEncoder.encode(request.getPassword())
         );
         pendingRegistrationRepository.save(pendingUser);
 
